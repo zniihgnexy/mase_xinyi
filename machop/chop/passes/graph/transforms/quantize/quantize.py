@@ -194,7 +194,9 @@ def graph_iterator_quantize_by_regex_name(graph, config: dict):
             )
     return graph
 
-
+# why only 1 OP is changed after quantization?
+# because the quantization is done by name, and the name of the OP is not changed
+# so only the OP with the name "conv1d" is changed
 def quantize_transform_pass(graph, pass_args=None):
     """
     Apply quantization transformation to the given graph.

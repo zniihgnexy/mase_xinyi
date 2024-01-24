@@ -277,7 +277,25 @@ def graph_iterator_compute_and_unregister_stats(graph):
         #         set_meta_result_stat(node, entry, result)
     return graph
 
-
+# summary of the function profile_statistics_analysis_pass is:
+# 1. perform profile statistics analysis on the given graph
+# 2. return a tuple of the modified graph and an empty dict
+# 3. the function takes a MaseGraph and a dict as input
+# 4. the dict can have the following arguments:
+#    1. "by": "name" or "type"
+#    2. "target_weight_nodes": a list of node names or types
+#    3. "target_activation_nodes": a list of node names or types
+#    4. "weight_statistics": a dict of statistics to collect for weights
+#    5. "activation_statistics": a dict of statistics to collect for activations
+#    6. "profile_output_activation": whether to profile the output activation
+#    7. "input_generator": a generator of input data
+#    8. "num_samples": the number of samples to profile
+# 5. the function performs the following steps:
+#    1. register stat collections for weights and activations
+#    2. profile weights
+#    3. profile activations
+#    4. compute and unregister stats
+#    5. return the modified graph and an empty dict
 def profile_statistics_analysis_pass(graph, pass_args: dict):
     """
     Perform profile statistics analysis on the given graph.

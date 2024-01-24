@@ -1,5 +1,18 @@
 import logging
 
+# summary of the function report_graph_analysis_pass is:
+# 1. generate a report for the graph analysis
+# 2. print out an overview of the model in a table
+# 3. return a tuple of a MaseGraph and an empty dict (no additional info to return)
+# 4. the function takes a MaseGraph and a dict as input
+# 5. the dict can have a string argument named "file_name"
+# 6. if the "file_name" argument is not None, the report will be written to the file
+# 7. if the "file_name" argument is None, the report will be printed to the console
+# 8. the report includes the following information:
+#    1. the number of each type of node in the graph
+#    2. the types of layers in the graph
+
+
 logger = logging.getLogger(__name__)
 
 

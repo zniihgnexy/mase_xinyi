@@ -115,7 +115,23 @@ def report_node_hardware_type_analysis_pass(graph, pass_args: dict = {}):
     graph = graph_iterator_inspect_node_hardware_type(graph)
     return graph, {}
 
-
+# summary of the function report_node_meta_param_analysis_pass is:
+# 1. perform meta parameter analysis on the nodes in the graph
+# 2. generate a report
+# 3. print out the report
+# 4. return a tuple of a MaseGraph and an empty dict (no additional info to return)
+# 5. the function takes a MaseGraph and a dict as input
+# 6. the dict can have two arguments:
+#    1. "which": str, and a list of options in ["all", "common", "hardware", "software"], default ["all"]
+#    2. "save_path": str, a str of path to save the table, default None
+# 7. the report includes the following information:
+#    1. the name of each node
+#    2. the Fx node op
+#    3. the Mase type
+#    4. the Mase op
+#    5. the common parameters
+#    6. the hardware parameters
+#    7. the software parameters
 def report_node_meta_param_analysis_pass(graph, pass_args: dict = None):
     """
     Perform meta parameter analysis on the nodes in the graph and generate a report.
