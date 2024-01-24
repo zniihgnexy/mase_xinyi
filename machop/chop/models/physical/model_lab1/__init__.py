@@ -8,10 +8,10 @@ from torch.nn.modules.activation import ReLU
 
 
 class modellab1(nn.Module):
-    def __init__(self):
+    def __init__(self, info):
         super(modellab1, self).__init__()
         # 1 输入图像通道, 6 输出通道, 5x5 卷积核
-        self.conv1 = nn.Conv2d(1, 6, 5)
+        self.conv1 = nn.Conv2d(3, 6, 5)
         # 6 输入图像通道, 16 输出通道, 5x5 卷积核
         self.conv2 = nn.Conv2d(6, 16, 5)
         # an affine operation: y = Wx + b
@@ -22,12 +22,12 @@ class modellab1(nn.Module):
 
     def forward(self, x):
         # 最大池化，2*2的窗口滑动
-        x = F.max_pool2d(F.ReLU(self.conv1(x)), (2, 2))
+        x = F.max_pool2d(F.relu(self.conv1(x)), (2, 2))
         # 如果滑动窗口是方形，可以直接写一个数
         #把所有特征展平，num_flat_features(x)==x.size()[1:].numel()
         x = x.view(-1, self.num_flat_features(x))
-        x = F.ReLU(self.fc1(x))
-        x = F.ReLU(self.fc2(x))
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return x
 
