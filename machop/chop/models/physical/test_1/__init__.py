@@ -12,10 +12,17 @@ class Test(nn.Module):
             # 1st LogicNets Layer
             nn.BatchNorm1d(16),  # input_quant       # 0
             nn.ReLU(16),  # 1
-            nn.Linear(16, 8),  # linear              # 2
-            nn.BatchNorm1d(8),  # output_quant       # 3
-            nn.ReLU(8),  # 4
+            nn.Linear(16, 64),  # linear              # 2
+            nn.BatchNorm1d(64),  # output_quant       # 3
+            nn.ReLU(64),  # 4
             # 2nd LogicNets Layer
+            nn.Linear(64, 128),  # 5
+            nn.BatchNorm1d(128),  # 6
+            nn.ReLU(128),  # 7
+            # 3rd LogicNets Layer
+            nn.Linear(128, 8),  # 8
+            nn.BatchNorm1d(8),  # 9
+            nn.ReLU(8),
             nn.Linear(8, 8),  # 5
             nn.BatchNorm1d(8),  # 6
             nn.ReLU(8),  # 7
