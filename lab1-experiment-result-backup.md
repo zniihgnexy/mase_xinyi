@@ -25,3 +25,7 @@ epoch 50 batchsize 128: v5
 Test metric             DataLoader 0
 test_acc_epoch          0.669505774974823
 test_loss_epoch        1.0218431949615479
+
+epoch 100 batchsize 128: v5
+Test metric             DataLoader 0
+test_acc_epoch         0.6962181329727173                                                                                                                                                                                                    test_loss_epoch        0.9409599900245667
