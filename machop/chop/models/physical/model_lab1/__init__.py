@@ -1,45 +1,42 @@
+"""
+Jet Substructure Models used in the LogicNets paper
+"""
+
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.modules.activation import ReLU
 
-class modelLab1(nn.Module):
-    def __init__(self, info):
-        super(modelLab1, self).__init__()
-        self.Conv = nn.Sequential(
-            # IN : 3*32*32
-            nn.Conv2d(in_channels=3,out_channels=96,kernel_size=5,stride=2,padding=2),      # 论文中kernel_size = 11,stride = 4,padding = 2
-            nn.ReLU(),
-            # IN : 96*16*16
-            nn.MaxPool2d(kernel_size=2,stride=2),              # 论文中为kernel_size = 3,stride = 2
-            # IN : 96*8*8
-            nn.Conv2d(in_channels=96, out_channels=256, kernel_size=5, stride=1, padding=2),
-            nn.ReLU(),
-            # IN :256*8*8
-            nn.MaxPool2d(kernel_size=2,stride=2),              # 论文中为kernel_size = 3,stride = 2
-            # IN : 256*4*4
-            nn.Conv2d(in_channels=256, out_channels=384, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            # IN : 384*4*4
-            nn.Conv2d(in_channels=384, out_channels=384, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            # IN : 384*4*4
-            nn.Conv2d(in_channels=384, out_channels=384, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            # IN : 384*4*4
-            nn.MaxPool2d(kernel_size=2, stride=2),              # 论文中为kernel_size = 3,stride = 2
-            # OUT : 384*2*2
-        )
-        self.linear = nn.Sequential(
-            nn.Linear(in_features=384 * 2 * 2, out_features=4096),
-            nn.ReLU(),
-            nn.Linear(in_features=4096, out_features=4096),
-            nn.ReLU(),
-            nn.Linear(in_features=4096, out_features=10),
-        )
-    def forward(self,x):
-            x = self.Conv(x)
-            x = x.view(-1, 384 * 2 * 2)
-            x = self.linear(x)
-            return x
 
-def get_modelLab1(info):
-    return modelLab1(info)
+class modellab1(nn.Module):
+    def __init__(self):
+        super(modellab1, self).__init__()
+        # 1 输入图像通道, 6 输出通道, 5x5 卷积核
+        self.conv1 = nn.Conv2d(1, 6, 5)
+        # 6 输入图像通道, 16 输出通道, 5x5 卷积核
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        # an affine operation: y = Wx + b
+        # 这里论文上写的是conv,官方教程用了线性层
+        self.fc1 = nn.Linear(16 * 5 * 5, 120) 
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+
+    def forward(self, x):
+        # 最大池化，2*2的窗口滑动
+        x = F.max_pool2d(F.ReLU(self.conv1(x)), (2, 2))
+        # 如果滑动窗口是方形，可以直接写一个数
+        #把所有特征展平，num_flat_features(x)==x.size()[1:].numel()
+        x = x.view(-1, self.num_flat_features(x))
+        x = F.ReLU(self.fc1(x))
+        x = F.ReLU(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # 获取出了batch的其它维度
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
+
+def get_modellab1(info):
+    return modellab1(info)
