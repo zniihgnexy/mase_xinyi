@@ -3,11 +3,13 @@ from .quantization import (
     GraphSearchSpaceMixedPrecisionPTQ,
 )
 from .base import SearchSpaceBase
+from .channel_size_modifier import ChannelSizeModifierZXY
 
 
 SEARCH_SPACE_MAP = {
     "graph/quantize/mixed_precision_ptq": GraphSearchSpaceMixedPrecisionPTQ,
     "module/manual_hf/quantize/llm_mixed_precision_ptq": ManualHFModuleSearchSpaceMixedPrecisionPTQ,
+    "graph/quantize/channel_size_modifier": ChannelSizeModifierZXY,
 }
 
 
