@@ -190,44 +190,42 @@ for i, config in enumerate(search_spaces):
     acc_avg = sum(accs) / len(accs)
     loss_avg = sum(losses) / len(losses)
     
-    # # model size
-    # model_size = get_model_size(mg)
-    # print("model size: ", model_size)
-    # recorded_size.append(model_size)
-    # # print(model.relu.weight)
+    # model size
+
+    # print(model.relu.weight)
     
-    for node in mg.fx_graph.nodes:
-        # print(mg.model.linear.weight)
-        # if node.op == 'call_module':
-        #     layer = get_node_actual_target(node)
-        #     if isinstance(layer, nn.Linear):
-        #         print('in out features by modules', layer.in_features, layer.out_features)
-        #         flops_number += layer.in_features * layer.out_features
-        #         print('flop numbers 1', flops_number)
-        #         layers_number += 1
-        #         print('layers number', layers_number)
-            
     # for node in mg.fx_graph.nodes:
-        if get_mase_op(node) == 'linear':
-            # batchsize = mg.model.in_data.shape[0] / mg.model.in_data.shape[-1]
-            # print('batch size number', batchsize)
-            # module = get_node_actual_target(node)
-            # batch_size = module.in_data.shape[0] / module.in_data.shape[-1]
-            # batch_size = node.meta['mase'].parameters['common']['args']['data_in_0'].numel() / node.meta['mase'].parameters['common']['args']['weight']['shape'][-1]
-            # print('batch size number', batch_size)
-            linear_flop_number += batch_size * node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][1] * node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][0]
-            print('linear flop numbers', linear_flop_number)
+    #     # print(mg.model.linear.weight)
+    #     # if node.op == 'call_module':
+    #     #     layer = get_node_actual_target(node)
+    #     #     if isinstance(layer, nn.Linear):
+    #     #         print('in out features by modules', layer.in_features, layer.out_features)
+    #     #         flops_number += layer.in_features * layer.out_features
+    #     #         print('flop numbers 1', flops_number)
+    #     #         layers_number += 1
+    #     #         print('layers number', layers_number)
+            
+    # # for node in mg.fx_graph.nodes:
+    #     if get_mase_op(node) == 'linear':
+    #         # batchsize = mg.model.in_data.shape[0] / mg.model.in_data.shape[-1]
+    #         # print('batch size number', batchsize)
+    #         # module = get_node_actual_target(node)
+    #         # batch_size = module.in_data.shape[0] / module.in_data.shape[-1]
+    #         # batch_size = node.meta['mase'].parameters['common']['args']['data_in_0'].numel() / node.meta['mase'].parameters['common']['args']['weight']['shape'][-1]
+    #         # print('batch size number', batch_size)
+    #         linear_flop_number += batch_size * node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][1] * node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][0]
+    #         print('linear flop numbers', linear_flop_number)
         
-        if get_mase_op(node) == 'relu':
-            relu_flop_number += node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][1]
-            print('relu flop numbers', relu_flop_number)
+    #     if get_mase_op(node) == 'relu':
+    #         relu_flop_number += node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][1]
+    #         print('relu flop numbers', relu_flop_number)
         
-        if get_mase_op(node) == 'batch_norm1d':
-            batch_norm1d_flop_number += 4 * node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][1]
-            print('batch_norm1d flop numbers', batch_norm1d_flop_number)
+    #     if get_mase_op(node) == 'batch_norm1d':
+    #         batch_norm1d_flop_number += 4 * node.meta['mase'].parameters['common']['args']['data_in_0']['shape'][1]
+    #         print('batch_norm1d flop numbers', batch_norm1d_flop_number)
         
-        flops_number = relu_flop_number + batch_norm1d_flop_number + linear_flop_number
-        print('flop numbers total', flops_number)
+    #     flops_number = relu_flop_number + batch_norm1d_flop_number + linear_flop_number
+    #     print('flop numbers total', flops_number)
 
 recorded_accs.append(acc_avg)
 recorded_latencies.append(latency)
@@ -235,3 +233,7 @@ recorded_latencies.append(latency)
 # recorded_flops.append(flops)
 print("recorded_acc", recorded_accs)
 print("recorded_latency", recorded_latencies)
+
+model_size = get_model_size(mg)
+print("model size: ", model_size)
+recorded_size.append(model_size)

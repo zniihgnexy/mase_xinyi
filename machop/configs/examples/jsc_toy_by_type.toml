@@ -6,12 +6,12 @@ task = "cls"
 max_epochs = 5
 batch_size = 512
 learning_rate = 1e-2
-accelerator = "gpu"
+accelerator = "cpu"
 project = "jsc-tiny"
 seed = 42
 log_every_n_steps = 5
-# load_name = "../mase_output/toy_toy_tiny/software/training_ckpts/best.ckpt"
-# load_type = "pl"
+load_name = "/home/xinyi/ADL/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-01-24/software/training_ckpts/best.ckpt"
+load_type = "pl"
 
 [passes.quantize]
 by = "type"
@@ -71,6 +71,7 @@ compare_to = 32 # compare to FP32
 n_jobs = 1
 n_trials = 20
 timeout = 20000
+# sampler = "brute_force"
 sampler = "tpe"
 # sum_scaled_metrics = true # single objective
 # direction = "maximize"

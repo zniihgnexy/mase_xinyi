@@ -110,6 +110,9 @@ ori_mg, _ = report_node_meta_param_analysis_pass(ori_mg, {"which": ("software",)
 
 print("finish the analysis pass")
 
+# print("profile statistics analysis pass")
+# ori_mg, _ = profile_statistics_analysis_pass(ori_mg, {"dummy_in": dummy_in})
+
 #########################################################################################################
 # pass_args is a dictionary that contains the arguments for the pass
 # first declare the configuration for the pass, then pass the configuration to the pass of the graph
@@ -144,6 +147,7 @@ for node in mg.fx_graph.nodes:
     print(node.args)
     
 _ = report_graph_analysis_pass(mg)
+
 
 print("report transform pass")
 mg, _ = report_node_meta_param_analysis_pass(mg, {"which": ("software",)})

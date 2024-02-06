@@ -102,6 +102,8 @@ model = JSC_Three_Linear_Layers()
 # generate the mase graph and initialize node metadata
 mg = MaseGraph(model=model)
 mg, _ = init_metadata_analysis_pass(mg, None)
+print("original one")
+_ = report_node_meta_param_analysis_pass(mg)
 
 def instantiate_linear(in_features, out_features, bias):
     if bias is not None:
@@ -172,6 +174,7 @@ pass_config = {
     "config": {
         "name": "input_only",
         "prev_link": "seq_blocks_4",
+        "channel_multiplier": 2,
         }
     },
 }
@@ -186,7 +189,6 @@ pass_config = {
 
 from torchmetrics.classification import MulticlassAccuracy
 import time
-from counter import count_flops_params
 import matplotlib.pyplot as plt
 import copy
 
@@ -199,20 +201,23 @@ search_spaces = []
 for cm_config in channel_multipliers:
     pass_config['seq_blocks_2']['config']['channel_multiplier'] = cm_config
     pass_config['seq_blocks_4']['config']['channel_multiplier'] = cm_config
+    # pass_config['seq_blocks_6']['config']['channel_multiplier'] = cm_config
     search_spaces.append(copy.deepcopy(pass_config))
 
 recorded_accs = []
 recorded_latencies = []
 recorded_model_sizes = []
-recorded_flops = []
 for i, config in enumerate(search_spaces):
     new_mg, _ = redefine_linear_transform_pass(
         ori_graph=mg, pass_args={"config": config})
+    print("new one")
+    # _ = report_node_meta_param_analysis_pass(new_mg)
+    print(config)
     j = 0
 
     acc_avg, loss_avg = 0, 0
     accs, losses = [], []
-    latency, flops, model_size = 0, 0, 0
+    latency, model_size = 0, 0
     flag = True
     for inputs in data_module.train_dataloader():
         xs, ys = inputs
@@ -228,9 +233,6 @@ for i, config in enumerate(search_spaces):
         j += 1
 
         latency += end - start
-        if flag:
-            flag = False
-            flops, model_size, _ = count_flops_params(new_mg.model, xs, verbose=False, mode='full')
     acc_avg = sum(accs) / len(accs)
     loss_avg = sum(losses) / len(losses)
     print('accs: ', accs)
@@ -238,9 +240,7 @@ for i, config in enumerate(search_spaces):
     recorded_accs.append(acc_avg)
     recorded_latencies.append(latency)
     recorded_model_sizes.append(model_size)
-    recorded_flops.append(flops)
 
-print('recorded_accs: ', recorded_accs)
-print('recorded_latencies: ', recorded_latencies)
-print('recorded_model_sizes: ', recorded_model_sizes)
-print('recorded_flops: ', recorded_flops)
+# print('recorded_accs: ', recorded_accs)
+# print('recorded_latencies: ', recorded_latencies)
+# print('recorded_model_sizes: ', recorded_model_sizes)

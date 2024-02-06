@@ -21,15 +21,17 @@ name = "graph/quantize/channel_size_modifier"
 [search.search_space.seed.default.config]
 # the only choice "NA" is used to indicate that layers are not quantized by default
 name = ["NA"]
+channel_multiplier = [1]
 
 [search.search_space.seed.seq_blocks_2.config]
 name = ["output_only"]
 channel_multiplier = [1, 2]
+parent_block_name = ["seq_blocks_1"]
 
 [search.search_space.seed.seq_blocks_3.config]
 name = ["both"]
 parent_block_name = ["seq_blocks_2"]
-channel_multiplier = [1, 2]
+channel_multiplier = [1, 2, 3]
 
 [search.search_space.seed.seq_blocks_4.config]
 name = ["input_only"]

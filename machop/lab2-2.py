@@ -190,7 +190,7 @@ args_bias_precision = 0
 
 for node in mg.fx_graph.nodes:
     if get_mase_op(node) == 'linear':
-        result_integer_number = node.meta['mase'].parameters['common']['results']['data_out_0']['precision']
+        result_integer_number = node.meta['mase'].parameters['common']['args']['data_in_0']['precision']
         print('the results shape', result_integer_number)
         args_weights_precision = node.meta['mase'].parameters['common']['args']['weight']['precision']
         print('the weights torch type', args_weights_precision)
@@ -204,9 +204,9 @@ for node in mg.fx_graph.nodes:
     #         print('the results torch type', result_integer_number)
     #         args_weights_precision = layer.weight.data.shape
     #         print('the weights torch type', args_weights_precision)
-        weight_value = node.meta['mase'].parameters['common']['args']['weight']
-        bias_value = node.meta['mase'].parameters['common']['args']['bias']
-        print('the weights value', weight_value)
-        print('the bias value', bias_value)
-        quantized_weight_value = _LinearBase.w_quantizer(weight_value)
-        print('the quantized weights value', quantized_weight_value)
+        # weight_value = node.meta['mase'].parameters['common']['args']['weight']
+        # bias_value = node.meta['mase'].parameters['common']['args']['bias']
+        # print('the weights value', weight_value)
+        # print('the bias value', bias_value)
+        # quantized_weight_value = _LinearBase.w_quantizer(weight_value)
+        # print('the quantized weights value', quantized_weight_value)

@@ -21,41 +21,9 @@ from collections import defaultdict
 DEFAULT_CHANNEL_SIEZ_MODIFIER_CONFIG = {
     "config": {
         "name": None,
-        # "channel_multiplier": 1,
+        "channel_multiplier": 1,
     }
 }
-
-# DEFAULT_QUANTIZATION_CONFIG = {
-# "by": "name",
-# "default": {"config": {"name": None}},
-# "seq_blocks_0": {
-#     "config": {
-#         "name": "BatchNorm1d",
-#         # "input_channel_number": 16,
-#         }
-#     },
-# "seq_blocks_1": {
-#     "config": {
-#         "name": "ReLU",
-#         }
-#     },
-# "seq_blocks_3": {
-#     "config": {
-#         "name": "ReLU",
-#         }
-#     },
-# "seq_blocks_5": {
-#     "config": {
-#         "name": "ReLU",
-#         }
-#     },
-# "seq_blocks_7": {
-#     "config": {
-#         "name": "ReLU",
-#         }
-#     },
-# }
-
 
 class ChannelSizeModifierZXY(SearchSpaceBase):
     """
@@ -88,10 +56,10 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
             mg, _ = add_common_metadata_analysis_pass(
                 mg, {"dummy_in": self.dummy_input}
             )
-            self.mg = mg
+            # self.mg = mg
         if sampled_config is not None:
             # ori_mg = mg.detach()
-            mg, _ = redefine_transform_pass(self.mg, {"config": sampled_config})
+            mg, _ = redefine_transform_pass(mg, {"config": sampled_config})
         mg.model.to(self.accelerator)
         return mg
 
@@ -140,49 +108,6 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
         config = unflatten_dict(flattened_config)
         config["default"] = self.default_config
         return config
-        
-        # if len(self.choices_flattened) == 0:
-        #     raise ValueError(f"choices_flattened must not be empty.")
-        
-        # self.choice_lengths_flattened = {
-        #     if len(v) == 0:
-        #         continue
-        #     else:
-        #         k: len(v) for k, v in self.choices_flattened.items()
-        # }
-
-            
-
-    # def build_search_space(self):
-    #     """
-    #     Build the search space for the mase graph (only quantizeable ops)
-    #     """
-    #     # Build a mapping from node name to mase_type and mase_op.
-    #     mase_graph = self.rebuild_model(sampled_config=None, is_eval_mode=True)
-    #     choices = {}
-    #     seed = self.config["seed"]
-        
-    #     import pdb; pdb.set_trace()
-
-    #     for node in mase_graph.fx_graph.nodes:
-    #         node_config = seed[node.name] if node.name in seed else DEFAULT_QUANTIZATION_CONFIG
-    #         # Make sure that all entries are lists so len can be called on them later.
-    #         for key, value in node_config['config'].items():
-    #             if value is None or isinstance(value, list):
-    #                 continue
-    #             # If the value is not a list (e.g., it's a single value or None), convert it to a list.
-    #             node_config['config'][key] = [value] if value is not None else []
-    #         choices[node.name] = node_config
-        
-    #     # Flatten the choices dictionary.
-    #     self.choices_flattened = {}
-    #     flatten_dict(choices, flattened=self.choices_flattened)
-        
-    #     # Now you can safely calculate the lengths.
-    #     self.choice_lengths_flattened = {
-    #         k: len(v) for k, v in self.choices_flattened.items()
-    #     }
-
 
 def instantiate_linear(in_features, out_features, bias):
     if bias is not None:
@@ -198,9 +123,9 @@ def instantiate_relu(inplace):
 def instantiate_batchnorm(num_features, eps, momentum, affine, track_running_stats):
     return nn.BatchNorm1d(num_features, eps, momentum, affine, track_running_stats)
 
-def redefine_transform_pass(ori_graph, pass_args=None):
+def redefine_transform_pass(graph, pass_args=None):
     # import pdb; pdb.set_trace()
-    graph = copy.deepcopy(ori_graph)
+    # graph = copy.deepcopy(ori_graph)
     # graph = torch.nn.DataParallel(graph)
     main_config = pass_args.pop('config')
     default = main_config.pop('default', None)
@@ -210,10 +135,13 @@ def redefine_transform_pass(ori_graph, pass_args=None):
     
     # import pdb; pdb.set_trace()
     
+    
     for node in graph.fx_graph.nodes:
         i += 1
         # if node name is not matched, it won't be tracked
         config = main_config.get(node.name, default)['config']
+        # print("this iteration's config:")
+        print(config)
         # if isinstance(get_node_actual_target(node), nn.Linear):
         #     parent_config = main_config.get(config['parent_block_name'], default)['config']
         name = config.get("name", None)
@@ -226,9 +154,12 @@ def redefine_transform_pass(ori_graph, pass_args=None):
                 
                 if name == "output_only":
                     out_features = out_features * config["channel_multiplier"]
+                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
                 elif name == "both":
                     in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
                     out_features = out_features * config["channel_multiplier"]
+                # in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                # out_features = out_features * config["channel_multiplier"]
                 elif name == "input_only":
                     in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
                 new_module = instantiate_linear(in_features, out_features, bias)
