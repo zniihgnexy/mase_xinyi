@@ -37,6 +37,7 @@ from chop.ir.graph.mase_graph import MaseGraph
 
 from chop.models import get_model_info, get_model
 import copy
+from chop.actions.train import train
 
 set_logging_verbosity("info")
 
@@ -44,7 +45,7 @@ logger = get_logger("chop")
 logger.setLevel(logging.INFO)
 
 metric = MulticlassAccuracy(num_classes=5)
-batch_size = 5
+batch_size = 128
 model_name = "jsc-three-linear-layers"
 dataset_name = "jsc"
 
@@ -53,7 +54,7 @@ data_module = MaseDataModule(
     name=dataset_name,
     batch_size=batch_size,
     model_name=model_name,
-    num_workers=0,
+    num_workers=19,
 )
 data_module.prepare_data()
 data_module.setup()
@@ -211,13 +212,14 @@ multiplier_number = [1, 2, 3, 4]
 layer_number = [2, 4, 6]
 multiplier_search_space = []
 
-for layer in layer_number:
-    for multiplier in multiplier_number:
-        # for name in name_cannels:
-        temp_pass_config = copy.deepcopy(pass_config)
-        temp_pass_config[f"seq_blocks_{layer}"]['config']['channel_multiplier'] = multiplier 
-        # temp_pass_config[f"seq_blocks_{layer}"]['config']['name'] = name_cannels
-        multiplier_search_space.append(copy.deepcopy(temp_pass_config))
+for multiplier in multiplier_number:
+    # for name in name_cannels:
+    temp_pass_config = copy.deepcopy(pass_config)
+    temp_pass_config[f"seq_blocks_2"]['config']['channel_multiplier'] = multiplier 
+    temp_pass_config[f"seq_blocks_4"]['config']['channel_multiplier'] = multiplier 
+    temp_pass_config[f"seq_blocks_6"]['config']['channel_multiplier'] = multiplier 
+    # temp_pass_config[f"seq_blocks_{layer}"]['config']['name'] = name_cannels
+    multiplier_search_space.append(copy.deepcopy(temp_pass_config))
 
 def validate_config_structure(config, standard):
     for key, value in standard.items():
@@ -246,8 +248,29 @@ for i, config in enumerate(multiplier_search_space):
         config['default'] = {"config": {"name": None}}
         
     # _ = report_graph_analysis_pass(mg)
+    print("number of this iteration: ", i)
     print("the config: ", config)
+    model = new_mg.model
 
+    train(
+        model,
+        model_info,
+        data_module,
+        dataset_info=get_dataset_info(dataset_name),
+        task="cls",
+        optimizer="adam",
+        learning_rate=1e-3,
+        weight_decay=1e-3,
+        plt_trainer_args={
+            "max_epochs": 1,
+        },
+        auto_requeue=False,
+        save_path=None,
+        visualizer=None,
+        load_name=None,
+        load_type=None,
+    )
+    
     # this is the inner loop, where we also call it as a runner.
     acc_avg, loss_avg = 0, 0
     accs, losses = [], []
@@ -269,8 +292,8 @@ for i, config in enumerate(multiplier_search_space):
         latency += end - start
     acc_avg = sum(accs) / len(accs)
     loss_avg = sum(losses) / len(losses)
-    print('accs: ', accs)
-    print('losses: ', losses)
+    # print('accs: ', accs)
+    # print('losses: ', losses)
     recorded_accs.append(acc_avg)
     recorded_latencies.append(latency)
 

@@ -17,6 +17,10 @@ from .....passes.graph import (
 from .....passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_target, get_parent_name
 from ..utils import flatten_dict, unflatten_dict
 from collections import defaultdict
+from chop.models import get_model_info, get_model
+from chop.actions.train import train
+from chop.dataset import MaseDataModule, get_dataset_info
+
 
 DEFAULT_CHANNEL_SIEZ_MODIFIER_CONFIG = {
     "config": {
@@ -42,7 +46,7 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
         # ), "Must specify entry `by` (config['setup']['by] = 'name' or 'type')"
 
 
-    def rebuild_model(self, sampled_config, is_eval_mode: bool = True):
+    def rebuild_model(self, sampled_config, is_eval_mode: bool = False):
         self.model.to(self.accelerator)
         if is_eval_mode:
             self.model.eval()
@@ -61,6 +65,29 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
             # ori_mg = mg.detach()
             mg, _ = redefine_transform_pass(mg, {"config": sampled_config})
         mg.model.to(self.accelerator)
+        model = mg.model
+        data_module = self.data_module
+        dataset_info = self.dataset_info
+        
+        train(
+        model,
+        model_info = self.model_info,
+        data_module = data_module,
+        dataset_info = dataset_info,
+        task="cls",
+        optimizer="adam",
+        learning_rate=1e-3,
+        weight_decay=1e-3,
+        plt_trainer_args={
+            "max_epochs": 1,
+        },
+        auto_requeue=False,
+        save_path=None,
+        visualizer=None,
+        load_name=None,
+        load_type=None,
+        )
+        
         return mg
 
     def _build_node_info(self):
