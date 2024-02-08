@@ -102,8 +102,8 @@ model = JSC_Three_Linear_Layers()
 # generate the mase graph and initialize node metadata
 mg = MaseGraph(model=model)
 mg, _ = init_metadata_analysis_pass(mg, None)
-print("original one")
-_ = report_node_meta_param_analysis_pass(mg)
+# print("original one")
+# _ = report_node_meta_param_analysis_pass(mg)
 
 def instantiate_linear(in_features, out_features, bias):
     if bias is not None:

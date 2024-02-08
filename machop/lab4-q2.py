@@ -71,20 +71,38 @@ dummy_in = {"x": next(iter(data_module.train_dataloader()))[0]}
 
 ##################################################################################
 # new model
+
 from torch import nn
 from chop.passes.graph.utils import get_parent_name
 
 # define a new model
+# class JSC_Three_Linear_Layers(nn.Module):
+#     def __init__(self):
+#         super(JSC_Three_Linear_Layers, self).__init__()
+#         self.seq_blocks = nn.Sequential(
+#             nn.BatchNorm1d(16),  # 0
+#             nn.ReLU(),  # 1
+#             nn.Linear(16, 16),  # linear  2
+#             nn.Linear(16, 16),  # linear  3
+#             nn.Linear(16, 5),   # linear  4
+#             nn.ReLU(5),  # 5
+#         )
+
+#     def forward(self, x):
+#         return self.seq_blocks(x)
+    
 class JSC_Three_Linear_Layers(nn.Module):
     def __init__(self):
         super(JSC_Three_Linear_Layers, self).__init__()
         self.seq_blocks = nn.Sequential(
             nn.BatchNorm1d(16),  # 0
             nn.ReLU(16),  # 1
-            nn.Linear(16, 16),  # linear  2
-            nn.Linear(16, 16),  # linear  3
-            nn.Linear(16, 5),   # linear  4
-            nn.ReLU(5),  # 5
+            nn.Linear(16, 16),  # linear seq_2
+            nn.ReLU(16),  # 3
+            nn.Linear(16, 16),  # linear seq_4
+            nn.ReLU(16),  # 5
+            nn.Linear(16, 5),  # linear seq_6
+            nn.ReLU(5),  # 7
         )
 
     def forward(self, x):
@@ -100,52 +118,6 @@ print("original one")
 _ = report_graph_analysis_pass(mg)
 
 #####################################################################################################
-def instantiate_linear(in_features, out_features, bias):
-    if bias is not None:
-        bias = True
-    return nn.Linear(
-        in_features=in_features,
-        out_features=out_features,
-        bias=bias)
-
-def redefine_linear_transform_pass(graph, pass_args=None):
-    main_config = pass_args.pop('config')
-    default = main_config.pop('default', None)
-    if default is None:
-        raise ValueError(f"default value must be provided.")
-    i = 0
-    for node in graph.fx_graph.nodes:
-        i += 1
-        # if node name is not matched, it won't be tracked
-        config = main_config.get(node.name, default)['config']
-        # print("this iteration's config:")
-        print(config)
-        # if isinstance(get_node_actual_target(node), nn.Linear):
-        #     parent_config = main_config.get(config['parent_block_name'], default)['config']
-        name = config.get("name", None)
-        if isinstance(get_node_actual_target(node), nn.Linear):
-            if name is not None:
-                ori_module = graph.modules[node.target]
-                in_features = ori_module.in_features
-                out_features = ori_module.out_features
-                bias = ori_module.bias
-                
-                if name == "output_only":
-                    out_features = out_features * config["channel_multiplier"]
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                elif name == "both":
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                    out_features = out_features * config["channel_multiplier"]
-                # in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                # out_features = out_features * config["channel_multiplier"]
-                elif name == "input_only":
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                new_module = instantiate_linear(in_features, out_features, bias)
-                parent_name, name = get_parent_name(node.target)
-                setattr(graph.modules[parent_name], name, new_module)
-    return graph, {}
-
-
 
 pass_config = {
 "by": "name",
@@ -159,45 +131,148 @@ pass_config = {
         "name": "output_only",
         # weight
         "channel_multiplier": 2,
-        "parent_block_name": "seq_blocks_1"
-        }
-    },
-"seq_blocks_3": {
-    "config": {
-        "name": "both",
-        "channel_multiplier": 2,
-        "parent_block_name": "seq_blocks_2"
+        'parent_block_name': 'seq_blocks_1'
         }
     },
 "seq_blocks_4": {
     "config": {
+        "name": "both",
+        "channel_multiplier": 2,
+        'parent_block_name': 'seq_blocks_2'
+        }
+    },
+"seq_blocks_6": {
+    "config": {
         "name": "input_only",
         "channel_multiplier": 2,
-        "parent_block_name": "seq_blocks_3"
+        'parent_block_name': 'seq_blocks_4'
         }
     },
 }
 
-# this performs the architecture transformation based on the config
-mg, _ = redefine_linear_transform_pass(
-    graph=mg, pass_args={"config": pass_config})
 
-print("new one")
-_ = report_graph_analysis_pass(mg)
+def instantiate_linear(in_features, out_features, bias):
+    if bias is not None:
+        bias = True
+    return nn.Linear(
+        in_features=in_features,
+        out_features=out_features,
+        bias=bias)
+
+def redefine_linear_transform_pass(graph, pass_args=None):
+    graph = copy.deepcopy(graph)
+    main_config = pass_args.pop('config')
+    
+    default = main_config.pop('default', None)
+    
+    if default is None:
+        raise ValueError(f"default value must be provided.")
+    i = 0
+    for node in graph.fx_graph.nodes:
+        i += 1
+        # if node name is not matched, it won't be tracked
+        config = main_config.get(node.name, default)['config']
+        if isinstance(get_node_actual_target(node), nn.Linear):
+            name = config.get("name", None)
+            if name is not None:
+                ori_module = graph.modules[node.target]
+                in_features = ori_module.in_features
+                out_features = ori_module.out_features
+                bias = ori_module.bias
+                if name == "output_only":
+                    out_features = out_features * config["channel_multiplier"]
+                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                elif name == "both":
+                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                    out_features = out_features * config["channel_multiplier"]
+                # in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                # out_features = out_features * config["channel_multiplier"]
+                elif name == "input_only":
+                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                new_module = instantiate_linear(in_features, out_features, bias)
+                parent_name, name = get_parent_name(node.target)
+                setattr(graph.modules[parent_name], name, new_module)
+        else:
+            continue
+    return graph, {}
 
 
-# def validate_config_structure(config, standard):
-#     for key, value in standard.items():
-#         if key not in config:
-#             print(f"Missing key: {key}")
-#             return False
-#         if isinstance(value, dict):
-#             if not validate_config_structure(config[key], value):
-#                 return False
-#     return True
+# # this performs the architecture transformation based on the config
+# mg, _ = redefine_linear_transform_pass(
+#     graph=mg, pass_args={"config": pass_config})
+# print("new one")
+# _ = report_graph_analysis_pass(mg)
 
-# for index, config in enumerate(multiplier_search_space):
-#     if validate_config_structure(config, pass_config):
-#         print(f"Configuration {index} is valid.")
-#     else:
-#         print(f"Configuration {index} is invalid.")
+#####################################################################################################
+# define search grid of multipliers
+
+multiplier_number = [1, 2, 3, 4]
+# name_cannels = ["input_only", "output_only", "both"]
+layer_number = [2, 4, 6]
+multiplier_search_space = []
+
+for layer in layer_number:
+    for multiplier in multiplier_number:
+        # for name in name_cannels:
+        temp_pass_config = copy.deepcopy(pass_config)
+        temp_pass_config[f"seq_blocks_{layer}"]['config']['channel_multiplier'] = multiplier 
+        # temp_pass_config[f"seq_blocks_{layer}"]['config']['name'] = name_cannels
+        multiplier_search_space.append(copy.deepcopy(temp_pass_config))
+
+def validate_config_structure(config, standard):
+    for key, value in standard.items():
+        if key not in config:
+            print(f"Missing key: {key}")
+            return False
+        if isinstance(value, dict):
+            if not validate_config_structure(config[key], value):
+                return False
+    return True
+
+for index, config in enumerate(multiplier_search_space):
+    if validate_config_structure(config, pass_config):
+        print(f"Configuration {index} is valid.")
+    else:
+        print(f"Configuration {index} is invalid.")
+
+recorded_accs = []
+recorded_latencies = []
+for i, config in enumerate(multiplier_search_space):
+    new_mg, _ = redefine_linear_transform_pass(
+        graph=mg, pass_args={"config": config})
+    j = 0
+    
+    if 'default' not in config:
+        config['default'] = {"config": {"name": None}}
+        
+    # _ = report_graph_analysis_pass(mg)
+    print("the config: ", config)
+
+    # this is the inner loop, where we also call it as a runner.
+    acc_avg, loss_avg = 0, 0
+    accs, losses = [], []
+    latency, flops = 0, 0
+    flag = True
+    for inputs in data_module.train_dataloader():
+        xs, ys = inputs
+        start = time.time()
+        preds = new_mg.model(xs)
+        end = time.time()
+        loss = nn.functional.cross_entropy(preds, ys)
+        acc = metric(preds, ys)
+        accs.append(acc)
+        losses.append(loss)
+        if j > batch_size:
+            break
+        j += 1
+
+        latency += end - start
+    acc_avg = sum(accs) / len(accs)
+    loss_avg = sum(losses) / len(losses)
+    print('accs: ', accs)
+    print('losses: ', losses)
+    recorded_accs.append(acc_avg)
+    recorded_latencies.append(latency)
+
+print('recorded_accs: ', recorded_accs)
+print('recorded_latencies: ', recorded_latencies)

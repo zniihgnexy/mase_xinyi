@@ -4,12 +4,14 @@ from .quantization import (
 )
 from .base import SearchSpaceBase
 from .channel_size_modifier import ChannelSizeModifierZXY
+from .batchnorm_conv_modifier import BatchNormConvModifierZXY
 
 
 SEARCH_SPACE_MAP = {
     "graph/quantize/mixed_precision_ptq": GraphSearchSpaceMixedPrecisionPTQ,
     "module/manual_hf/quantize/llm_mixed_precision_ptq": ManualHFModuleSearchSpaceMixedPrecisionPTQ,
     "graph/quantize/channel_size_modifier": ChannelSizeModifierZXY,
+    "graph/quantize/batchnorm_conv_modifier": BatchNormConvModifierZXY,
 }
 
 
