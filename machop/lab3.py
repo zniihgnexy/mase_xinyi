@@ -4,6 +4,8 @@ import os
 from pathlib import Path
 from pprint import pprint as pp
 import time
+from chop.actions.train import train
+
 
 from chop.passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_target
 
@@ -40,7 +42,7 @@ from chop.models import get_model_info, get_model
 logger = get_logger("chop")
 logger.setLevel(logging.INFO)
 
-batch_size = 8
+batch_size = 128
 model_name = "jsc-tiny"
 dataset_name = "jsc"
 
@@ -158,9 +160,28 @@ def get_model_size(mg):
     return model_size
 
 for i, config in enumerate(search_spaces):
+    print("the configurations: ", config) 
     mg, _ = quantize_transform_pass(mg, config)
     # evaluate(mg, data_module, metric, num_batchs, recorded_accs)
     j = 0
+    train(
+        model,
+        model_info,
+        data_module,
+        dataset_info=get_dataset_info(dataset_name),
+        task="cls",
+        optimizer="adam",
+        learning_rate=1e-3,
+        weight_decay=1e-3,
+        plt_trainer_args={
+            "max_epochs": 1,
+        },
+        auto_requeue=False,
+        save_path=None,
+        visualizer=None,
+        load_name=None,
+        load_type=None,
+    )
 
     # this is the inner loop, where we also call it as a runner.
     acc_avg, loss_avg = 0, 0
