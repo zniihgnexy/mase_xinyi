@@ -64,29 +64,29 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
         if sampled_config is not None:
             # ori_mg = mg.detach()
             mg, _ = redefine_transform_pass(mg, {"config": sampled_config})
+            # model = mg.model
+            # data_module = self.data_module
+            # dataset_info = self.dataset_info
         mg.model.to(self.accelerator)
-        model = mg.model
-        data_module = self.data_module
-        dataset_info = self.dataset_info
-        
-        train(
-        model,
-        model_info = self.model_info,
-        data_module = data_module,
-        dataset_info = dataset_info,
-        task="cls",
-        optimizer="adam",
-        learning_rate=1e-3,
-        weight_decay=1e-3,
-        plt_trainer_args={
-            "max_epochs": 1,
-        },
-        auto_requeue=False,
-        save_path=None,
-        visualizer=None,
-        load_name=None,
-        load_type=None,
-        )
+        # mg.model.train()      
+        # train(
+        # model,
+        # model_info = self.model_info,
+        # data_module = data_module,
+        # dataset_info = dataset_info,
+        # task="cls",
+        # optimizer="adam",
+        # learning_rate=1e-3,
+        # weight_decay=1e-3,
+        # plt_trainer_args={
+        #     "max_epochs": 1,
+        # },
+        # auto_requeue=False,
+        # save_path=None,
+        # visualizer=None,
+        # load_name=None,
+        # load_type=None,
+        # )
         
         return mg
 

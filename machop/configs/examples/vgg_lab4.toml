@@ -14,7 +14,7 @@ load_name = "/home/xinyi/mase_xinyi/mase_output/vgg7_classification_cifar10_2024
 load_type = "pl"
 
 [search.search_space]
-name = "graph/quantize/channel_size_modifier"
+name = "graph/quantize/batchnorm_conv_modifier"
 
 #[search.search_space.setup]
 #by = 'name'
@@ -44,7 +44,6 @@ parent_block_name = ["seq_blocks_5"]
 
 
 [search.strategy]
-#name = "txl_bf"
 name = "optuna"
 eval_mode = true
 
