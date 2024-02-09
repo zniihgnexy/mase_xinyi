@@ -1,8 +1,18 @@
 model = "jsc-three-linear-layers"
 dataset = "jsc"
-task = "cls"
 data_loader = "default"
+# data_module = "default"
+# dataset_dir = "/home/xinyi/mase_xinyi/mase_data/jsc"
+
+[training]
+model = "mg.model"
+model_info = "self.model_info"
 data_module = "default"
+dataset_info = "jsc"
+task = "cls"
+optimizer = "adam"
+weight_decay = 0.001
+
 
 max_epochs = 1
 batch_size = 128
@@ -11,7 +21,7 @@ accelerator = "cpu"
 project = "jsc-three-linear-layers"
 seed = 42
 log_every_n_steps = 5
-# load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-three-linear-layers_classification_jsc_2024-02-08/software/training_ckpts/best.ckpt"
+load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-three-linear-layers_classification_jsc_2024-02-08/software/training_ckpts/best.ckpt"
 load_type = "pl"
 
 [search.search_space]
