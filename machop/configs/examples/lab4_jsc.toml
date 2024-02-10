@@ -1,21 +1,9 @@
 model = "jsc-three-linear-layers"
 dataset = "jsc"
-data_loader = "default"
-# data_module = "default"
-# dataset_dir = "/home/xinyi/mase_xinyi/mase_data/jsc"
-
-[training]
-model = "mg.model"
-model_info = "self.model_info"
-data_module = "default"
-dataset_info = "jsc"
 task = "cls"
-optimizer = "adam"
-weight_decay = 0.001
 
-
-max_epochs = 1
-batch_size = 128
+max_epochs = 5
+batch_size = 512
 learning_rate = 1e-2
 accelerator = "cpu"
 project = "jsc-three-linear-layers"

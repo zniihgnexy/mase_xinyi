@@ -1,7 +1,6 @@
 # This is the search space for mixed-precision post-training-quantization quantization search on mase graph.
 from copy import deepcopy
 import copy
-import toml
 from torch import nn
 import torch
 from torch.nn import ReLU
@@ -18,10 +17,6 @@ from .....passes.graph import (
 from .....passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_target, get_parent_name
 from ..utils import flatten_dict, unflatten_dict
 from collections import defaultdict
-from chop.models import get_model_info, get_model
-from chop.actions.train import train
-from chop.dataset import MaseDataModule, get_dataset_info
-
 
 DEFAULT_CHANNEL_SIEZ_MODIFIER_CONFIG = {
     "config": {
@@ -48,7 +43,7 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
 
 
     def rebuild_model(self, sampled_config, is_eval_mode: bool = True):
-        # self.model.to(self.accelerator)
+        self.model.to(self.accelerator)
         if is_eval_mode:
             self.model.eval()
         else:
@@ -61,46 +56,11 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
             mg, _ = add_common_metadata_analysis_pass(
                 mg, {"dummy_in": self.dummy_input}
             )
-            # data_module = self.data_module
             # self.mg = mg
         if sampled_config is not None:
             # ori_mg = mg.detach()
             mg, _ = redefine_transform_pass(mg, {"config": sampled_config})
-            # data_module = self.data_module
-            # dataset_info = self.dataset_info
-        # mg.model.to(self.accelerator)
-        
-        config_toml = toml.load("/home/xinyi/mase_xinyi/machop/configs/examples/lab4_jsc.toml")
-        
-        data_module = MaseDataModule(
-            name="jsc",
-            batch_size=128,
-            model_name="jsc-tiny",
-            num_workers=19,
-            # custom_dataset_cache_path="../../chop/dataset"
-        )
-        dataset_info = config_toml["training"]["dataset_info"]
-        
-        # mg.model.train()      
-        train(
-        model=mg.model,
-        model_info = self.model_info,
-        data_module = data_module,
-        dataset_info = dataset_info,
-        task="cls",
-        optimizer="adam",
-        learning_rate=1e-3,
-        weight_decay=1e-3,
-        plt_trainer_args={
-            "max_epochs": 1,
-        },
-        auto_requeue=False,
-        save_path=None,
-        visualizer=None,
-        load_name=None,
-        load_type=None,
-        )
-        
+        mg.model.to(self.accelerator)
         return mg
 
     def _build_node_info(self):
