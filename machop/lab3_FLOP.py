@@ -315,6 +315,7 @@ mg, _ = add_common_metadata_analysis_pass(mg, {"dummy_in": dummy_in})
 
 from chop.passes.graph.utils import get_node_actual_target
 
+flop = 0
 store_flops_calculation = {}
 # import pdb; pdb.set_trace()
 for node in mg.fx_graph.nodes:
@@ -328,9 +329,11 @@ for node in mg.fx_graph.nodes:
     if isinstance(module, torch.nn.Module):
         current_flops = calculate_modules(module, in_data, out_data)
         store_flops_calculation[module] = current_flops
+        flop += current_flops['computations']
         
 print("store_flops_data", store_flops_calculation)
 
+bitops = 0
 store_bitops_calculation = {}
 for node in mg.fx_graph.nodes:
     try:
@@ -343,5 +346,8 @@ for node in mg.fx_graph.nodes:
     if isinstance(module, torch.nn.Module):
         current_bitops = calculate_modules_bitop(node, module, in_data, out_data)
         store_bitops_calculation[module] = current_bitops
+        bitops += current_bitops['bitops']
 
 print("store_bitops_data", store_bitops_calculation)
+print("flops", flop)
+print("bitops", bitops)

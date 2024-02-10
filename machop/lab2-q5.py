@@ -43,6 +43,10 @@ from chop.ir.graph.mase_metadata import MaseMetadata
 
 set_logging_verbosity("info")
 
+from chop.passes.graph.transforms.quantize.quantized_modules.linear import _LinearBase, LinearInteger
+
+from functools import partial
+
 
 
 #########################################################################################################
@@ -50,7 +54,7 @@ set_logging_verbosity("info")
 ### instantiate the same dataset and model as in Lab1
 # Set up parameters, including batch size, model name, and dataset name
 batch_size = 8
-model_name = "jsc-tiny"
+model_name = "jsc-toy"
 dataset_name = "jsc"
 
 # Load model, dataset, and data module
@@ -64,7 +68,7 @@ data_module.prepare_data()
 data_module.setup()
 
 # 📝️ change this CHECKPOINT_PATH to the one you trained in Lab1
-CHECKPOINT_PATH = "/home/xinyi/ADL/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-01-24/software/training_ckpts/best.ckpt"
+CHECKPOINT_PATH = "/home/xinyi/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-02-10/software/training_ckpts/best.ckpt"
 model_info = get_model_info(model_name)
 model = get_model(
     model_name,
@@ -90,6 +94,24 @@ input_generator = InputGenerator(
 dummy_in = next(iter(input_generator))
 _ = model(**dummy_in)
 
+########################################################################################################
+#pass_args is a dictionary that contains the arguments for the pass
+# first declare the configuration for the pass, then pass the configuration to the pass of the graph
+pass_args = {
+    "by": "type",
+    "default": {"config": {"name": None}},
+    "linear": {
+        "config": {
+            "name": "integer",
+            "data_in_width": 16,
+            "data_in_frac_width": 8,
+            "weight_width": 8,
+            "weight_frac_width": 4,
+            "bias_width": 8,
+            "bias_frac_width": 4,
+        }
+    },
+}
 #########################################################################################################
 ### generate a mase model and apply passes
 # generate a mase model
@@ -106,50 +128,37 @@ ori_mg, _ = add_software_metadata_analysis_pass(ori_mg, None)
 
 # report graph analysis, there's a print out
 _ = report_graph_analysis_pass(ori_mg)
+print("report original pass")
 ori_mg, _ = report_node_meta_param_analysis_pass(ori_mg, {"which": ("software",)})
 
-print("finish the analysis pass")
-
-# print("profile statistics analysis pass")
-# ori_mg, _ = profile_statistics_analysis_pass(ori_mg, {"dummy_in": dummy_in})
-
-#########################################################################################################
-# pass_args is a dictionary that contains the arguments for the pass
-# first declare the configuration for the pass, then pass the configuration to the pass of the graph
-pass_args = {
-    "by": "type",
-    "default": {"config": {"name": None}},
-    "relu": {
-        "config": {
-            "name": "integer",
-            "data_in_width": 16,
-            "data_in_frac_width": 8,
-            "weight_width": 16,
-            "weight_frac_width": 8,
-            "bias_width": 8,
-            "bias_frac_width": 4,
-        }
-    },
-}
-
-
-#########################################################################################################
-
-mg = MaseGraph(model=model)
-mg, _ = init_metadata_analysis_pass(mg, None)
-mg, _ = add_common_metadata_analysis_pass(mg, {"dummy_in": dummy_in})
-mg, _ = add_software_metadata_analysis_pass(mg, None)
-
-mg, _ = quantize_transform_pass(mg, pass_args)
-
-for node in mg.fx_graph.nodes:
-    print(node)
-    print(node.args)
+mg, _ = quantize_transform_pass(ori_mg, pass_args)
     
 _ = report_graph_analysis_pass(mg)
-
-
 print("report transform pass")
 mg, _ = report_node_meta_param_analysis_pass(mg, {"which": ("software",)})
+
 print("show the diff")
 summarize_quantization_analysis_pass(ori_mg, mg, save_dir="quantize_summary")
+
+print("finish jsc-toy analysis pass")
+
+result_integer_number = 0
+args_weights_precision = 0
+args_bias_precision = 0
+
+for node in mg.fx_graph.nodes:
+    if get_mase_op(node) == 'linear':
+        result_integer_number = node.meta['mase'].parameters['common']['args']['data_in_0']['precision']
+        print('the results shape', result_integer_number)
+        args_weights_precision = node.meta['mase'].parameters['common']['args']['weight']['precision']
+        print('the weights torch type', args_weights_precision)
+        args_bias_precision = node.meta['mase'].parameters['common']['args']['bias']['precision']
+        print('the bias torch type', args_bias_precision)
+        
+    if node.op == 'call_module':
+        layer = get_node_actual_target(node)
+        if isinstance(layer, nn.Linear):
+            result_integer_number = layer.weight.data.shape
+            print('the results torch type', result_integer_number)
+            args_weights_precision = layer.weight.data.shape
+            print('the weights torch type', args_weights_precision)

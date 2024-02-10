@@ -43,9 +43,7 @@ from chop.ir.graph.mase_metadata import MaseMetadata
 
 set_logging_verbosity("info")
 
-from chop.passes.graph.transforms.quantize.quantized_modules.linear import _LinearBase, LinearInteger
 
-from functools import partial
 
 #########################################################################################################
 
@@ -66,7 +64,7 @@ data_module.prepare_data()
 data_module.setup()
 
 # 📝️ change this CHECKPOINT_PATH to the one you trained in Lab1
-CHECKPOINT_PATH = "/home/xinyi/ADL/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-01-24/software/training_ckpts/best.ckpt"
+CHECKPOINT_PATH = "/home/xinyi/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-02-09/software/training_ckpts/best.ckpt"
 model_info = get_model_info(model_name)
 model = get_model(
     model_name,
@@ -112,6 +110,9 @@ ori_mg, _ = report_node_meta_param_analysis_pass(ori_mg, {"which": ("software",)
 
 print("finish the analysis pass")
 
+# print("profile statistics analysis pass")
+# ori_mg, _ = profile_statistics_analysis_pass(ori_mg, {"dummy_in": dummy_in})
+
 #########################################################################################################
 # pass_args is a dictionary that contains the arguments for the pass
 # first declare the configuration for the pass, then pass the configuration to the pass of the graph
@@ -121,56 +122,25 @@ pass_args = {
     "linear": {
         "config": {
             "name": "integer",
-            "data_in_width": 8,
+            "data_in_width": 16,
             "data_in_frac_width": 4,
-            "weight_width": 8,
+            "weight_width": 16,
             "weight_frac_width": 4,
             "bias_width": 8,
-            "bias_frac_width": 4,
+            "bias_frac_width": 8,
         }
     },
 }
 
 
 #########################################################################################################
-### instantiate the same dataset and model as in Lab1
-# Set up parameters, including batch size, model name, and dataset name
-batch_size = 8
-model_name = "jsc-toy"
-dataset_name = "jsc"
 
-# Load model, dataset, and data module
-data_module = MaseDataModule(
-    name=dataset_name,
-    batch_size=batch_size,
-    model_name=model_name,
-    num_workers=0,
-)
-data_module.prepare_data()
-data_module.setup()
-
-# 📝️ change this CHECKPOINT_PATH to the one you trained in Lab1
-CHECKPOINT_PATH = "/home/xinyi/ADL/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-01-25/software/training_ckpts/best.ckpt"
-model_info = get_model_info(model_name)
-model = get_model(
-    model_name,
-    task="cls",
-    dataset_info=data_module.dataset_info,
-    pretrained=False)
-
-model = load_model(load_name=CHECKPOINT_PATH, load_type="pl", model=model)
-
-#########################################################################################################
 mg = MaseGraph(model=model)
 mg, _ = init_metadata_analysis_pass(mg, None)
 mg, _ = add_common_metadata_analysis_pass(mg, {"dummy_in": dummy_in})
 mg, _ = add_software_metadata_analysis_pass(mg, None)
 
 mg, _ = quantize_transform_pass(mg, pass_args)
-
-for node in mg.fx_graph.nodes:
-    print(node)
-    print(node.args)
     
 _ = report_graph_analysis_pass(mg)
 
@@ -179,14 +149,13 @@ mg, _ = report_node_meta_param_analysis_pass(mg, {"which": ("software",)})
 print("show the diff")
 summarize_quantization_analysis_pass(ori_mg, mg, save_dir="quantize_summary")
 
+for node in mg.fx_graph.nodes:
+    print(node)
+    print(node.args)
+
 result_integer_number = 0
 args_weights_precision = 0
 args_bias_precision = 0
-
-# init my own quantizer parameters for printing out data values
-# w_width = pass_args['linear']['config']['weight_width']
-# w_frac_width = pass_args['linear']['config']['weight_frac_width']
-# w_quantizer = _LinearBase.get_quantizer(w_width, w_frac_width)
 
 for node in mg.fx_graph.nodes:
     if get_mase_op(node) == 'linear':
@@ -197,15 +166,15 @@ for node in mg.fx_graph.nodes:
         args_bias_precision = node.meta['mase'].parameters['common']['args']['bias']['precision']
         print('the bias torch type', args_bias_precision)
     
-    # if node.op == 'call_module':
-    #     layer = get_node_actual_target(node)
-    #     if isinstance(layer, nn.Linear):
-    #         result_integer_number = layer.weight.data.shape
-    #         print('the results torch type', result_integer_number)
-    #         args_weights_precision = layer.weight.data.shape
-    #         print('the weights torch type', args_weights_precision)
-        # weight_value = node.meta['mase'].parameters['common']['args']['weight']
-        # bias_value = node.meta['mase'].parameters['common']['args']['bias']
+    if node.op == 'call_module':
+        layer = get_node_actual_target(node)
+        if isinstance(layer, nn.Linear):
+            result_integer_number = layer.weight.data.shape
+            print('the results torch type', result_integer_number)
+            args_weights_precision = layer.weight.data.shape
+            print('the weights torch type', args_weights_precision)
+        # weight_value = node.meta['mase'].parameters['common']['args']['weight']['value']
+        # bias_value = node.meta['mase'].parameters['common']['args']['bias']['value']
         # print('the weights value', weight_value)
         # print('the bias value', bias_value)
         # quantized_weight_value = _LinearBase.w_quantizer(weight_value)

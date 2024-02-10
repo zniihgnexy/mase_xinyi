@@ -63,7 +63,7 @@ data_module.prepare_data()
 data_module.setup()
 
 # 📝️ change this CHECKPOINT_PATH to the one you trained in Lab1
-CHECKPOINT_PATH = "/home/xinyi/ADL/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-01-24/software/training_ckpts/best.ckpt"
+CHECKPOINT_PATH = "/home/xinyi/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-02-09/software/training_ckpts/best.ckpt"
 model_info = get_model_info(model_name)
 model = get_model(
     model_name,
@@ -238,6 +238,17 @@ ori_mg, _ = init_metadata_analysis_pass(ori_mg, None)
 ori_mg, _ = add_common_metadata_analysis_pass(ori_mg, {"dummy_in": dummy_in})
 ori_mg, _ = add_software_metadata_analysis_pass(ori_mg, None)
 
+for node in ori_mg.fx_graph.nodes:
+    # print("the original graph node")
+    print(node)
+    # print(node.args)
+    # print(node.kwargs)
+    # print(node.op)
+    # print(node.target)
+    # print(node.name)
+    # print(node.meta)
+    print(node.meta["mase"].parameters["common"]["args"])
+
 mg, _ = quantize_transform_pass(mg, pass_args_1)
 print("report transform pass")
 mg, _ = report_node_meta_param_analysis_pass(mg, {"which": ("software",)})
@@ -249,5 +260,14 @@ print("print out the difference between the original graph and the quantized gra
 #########################################################################################################
 # traverse the graph and print out the nodes
 print("node after quantize transform pass")
+    
 for node in mg.fx_graph.nodes:
-    print(node.op, node.name)
+    # print("the new graph node")
+    print(node)
+    # print(node.args)
+    # print(node.kwargs)
+    # print(node.op)
+    # print(node.target)
+    # print(node.name)
+    # print(node.meta)
+    print(node.meta["mase"].parameters["common"]["args"])

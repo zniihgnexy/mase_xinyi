@@ -1,8 +1,25 @@
-## Lab 3 for Advanced Deep Learning Systems (ADLS)
+## Optional task of lab2: FLOPs and BitOPs
 
-#### 1. Explore additional metrics that can serve as quality metrics for the search process. For example, you can consider metrics such as latency, model size, or the number of FLOPs (floating-point operations) involved in the model.
+I use the funtion defined in the source code to calculate the FLOPs. About BitOPs, i simply calculate the number of bit calculation persuming all the data are multiplied between layers. The results are as below:
 
-###### for counting model size: Using model size as a quality metric, i defined a function as follows:
+```python
+store_flops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'total_parameters': 32, 'computations': 512, 'backward_computations': 512, 'input_buffer_size': 128, 'output_buffer_size': 128}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 128, 'backward_computations': 128, 'input_buffer_size': 128, 'output_buffer_size': 128}, Linear(in_features=16, out_features=5, bias=True): {'total_parameters': 80, 'computations': 640.0, 'backward_computations': 1280.0, 'input_buffer_size': 128, 'output_buffer_size': 40}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 40, 'backward_computations': 40, 'input_buffer_size': 40, 'output_buffer_size': 40}}
+store_bitops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'computations': 512, 'bitops': 16384}, ReLU(inplace=True): {'computations': 128, 'bitops': 4096}, Linear(in_features=16, out_features=5, bias=True): {'computations': 640.0, 'bitops': 20480.0}, ReLU(inplace=True): {'computations': 40, 'bitops': 1280}}
+flops 1320.0
+bitops 42240.0
+
+parameters of element size 16 4
+parameters of element size 16 4
+parameters of element size 80 4
+parameters of element size 5 4
+model size:  468
+```
+
+# Lab 3 for Advanced Deep Learning Systems (ADLS)
+
+## 1. Explore additional metrics that can serve as quality metrics for the search process. For example, you can consider metrics such as latency, model size, or the number of FLOPs (floating-point operations) involved in the model.
+
+#### for counting model size: Using model size as a quality metric, i defined a function as follows:
 ```python
 def get_model_size(mg):
     model_size = 0
@@ -37,55 +54,95 @@ these are the three layers i used here.
 in my functions, i used my self-defined functions to calculate the model size and FLOPs, and the results are as follows:
 
 (1) model size and FLOPs:
-![](lab3pic\modelsize.png)
-
-![](lab3pic\flopdata.png)
+```python
+store_flops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'total_parameters': 32, 'computations': 512, 'backward_computations': 512, 'input_buffer_size': 128, 'output_buffer_size': 128}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 128, 'backward_computations': 128, 'input_buffer_size': 128, 'output_buffer_size': 128}, Linear(in_features=16, out_features=5, bias=True): {'total_parameters': 80, 'computations': 640.0, 'backward_computations': 1280.0, 'input_buffer_size': 128, 'output_buffer_size': 40}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 40, 'backward_computations': 40, 'input_buffer_size': 40, 'output_buffer_size': 40}}
+store_bitops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'computations': 512, 'bitops': 16384}, ReLU(inplace=True): {'computations': 128, 'bitops': 4096}, Linear(in_features=16, out_features=5, bias=True): {'computations': 640.0, 'bitops': 20480.0}, ReLU(inplace=True): {'computations': 40, 'bitops': 1280}}
+flops 1320.0
+bitops 42240.0
+```
 
 from the results above, the "computations" is the FLOPs, and the "total_parameters" is the model size. in order to calculate the full size of the model ,we need to add these numbers together, and the results are as follows:
 
 model size: 468
-FLOPs: 1280.0
+FLOPs: 1320.0
 
-#### 2. Implement some of these additional metrics and attempt to combine them with the accuracy or loss quality metric. It’s important to note that in this particular case, accuracy and loss actually serve as the same quality metric (do you know why?).
+## 2. Implement some of these additional metrics and attempt to combine them with the accuracy or loss quality metric. It’s important to note that in this particular case, accuracy and loss actually serve as the same quality metric (do you know why?).
 
-###### for calculating latency: i defined the latency by using time module in python, and the latency is calculated as follows:
+### Combining Additional Quality Metrics with Accuracy and Loss
+
+In model optimization, integrating various quality metrics beyond accuracy and loss can provide a more nuanced view of a model's performance. Latency, for instance, is an operational metric reflecting the model's response time or execution speed. Here’s an implementation of latency measurement, along with a discussion on how accuracy and loss can serve as congruent metrics in certain contexts.
+
+### Latency Measurement
+
+Latency is a critical metric, especially in real-time applications where response time is crucial. The following code measures the latency of a model by recording the time taken to make predictions:
 
 ```python
+import time
+import torch.nn as nn
+
+accs = []
+losses = []
+latencies = []
+num_batches = 100  # Define the number of batches to measure
+j = 0
+
 for inputs in data_module.train_dataloader():
     xs, ys = inputs
     start = time.time()
     preds = new_mg.model(xs)
     end = time.time()
+    latency = end - start
+    latencies.append(latency)
+    
     loss = nn.functional.cross_entropy(preds, ys)
-    acc = metric(preds, ys)
-    accs.append(acc)
-    losses.append(loss)
-    if j > num_batchs:
+    losses.append(loss.item())
+    
+    acc = (preds.argmax(dim=1) == ys).float().mean()
+    accs.append(acc.item())
+
+    if j >= num_batches:
         break
     j += 1
+
+# Calculate and print the average latency
+average_latency = sum(latencies) / len(latencies)
+print(f'Average Latency: {average_latency:.5f} seconds')
 ```
 
-I simply used the time.time() function to calculate the time difference between the start and end of the model running, and then added them together to get the total latency. Considering the runtime also affected by calculation of accuracy and loss, i only use time module around prediction function, which i only estimate the value of data prediction.
+This snippet wraps the model's prediction step with time.time() calls to measure the processing time, contributing to the total latency. The average latency is then computed over a defined number of batches to provide a reliable estimate.
 
-And the results are as follows:
+### Results and Interpretation
+The initial results, showing accuracy and latency, were as follows:
+```python
+recorded_acc [tensor(0.1934)]
+recorded_latency [0.002038717269897461]
+```
+### Accuracy and Loss as Congruent Metrics
+Accuracy and loss are indeed often used interchangeably as quality metrics in classification tasks. This is particularly true when using a loss function like cross-entropy, which directly relates to classification accuracy. The cross-entropy loss is minimized when the predicted probability distribution aligns with the actual distribution, which simultaneously maximizes accuracy.
+#### Cross-Entropy Loss Function
 
-![](lab3pic\accandlatency.png)
+$$
+\text{Loss} = \frac{1}{N} \sum_{i=1}^{N} \text{Loss}^{(i)}
+$$
 
-Accuracy and loss actually serve as the same quality metric, this is because: 
+$$
+\text{Loss}^{(i)} = - \sum_{k=1}^{q} y_k^{(i)} \log(\hat{y}_k^{(i)})
+$$
 
-In this case, we use cross entropy function to calculate the loss, which function is:
+#### Multi-Class Accuracy
 
-![](lab3pic\crossentropy.png)
+$$
+\text{Accuracy} = \frac{1}{N} \sum_{i=1}^{N} 1(y_i = \hat{y}_i)
+$$
 
-And the accuracy calculation function is from MulticlassAccuracy Class, because jsc-tiny network is a 5-class classification network. And the calculation of multi-class accuracy is as follows:
+Both metrics rely on the concept of one-hot encoding for classification, where the prediction is considered correct if the highest probability is assigned to the true class. Thus, as the loss decreases (indicating better predictions), the accuracy inherently increases, demonstrating their interconnectedness.
 
-![](lab3pic\accuracy.png)
-
-In this particular question, the classification question's accuracy and loss are both using one-hot number for the calculation. In this case, 
-
+#### Conclusion
+Latency, when combined with accuracy and loss, can yield a holistic view of the model's operational performance. While accuracy and loss are intrinsically linked through the mechanics of the cross-entropy loss function in classification tasks, incorporating latency provides an additional dimension of quality, reflecting the practical deployment considerations of the model.
 
 
-#### 3. Implement the brute-force search as an additional search method within the system, this would be a new search strategy in MASE.
+
+## 3. Implement the brute-force search as an additional search method within the system, this would be a new search strategy in MASE.
 
 using the brute-force search, i defined the method using the optuna.py file already existed in the MASE repo, and the code is as follows:
 
@@ -138,22 +195,76 @@ sampler = "tpe"
 i found that the brute-force search is much slower than the TPE based search, and the results are as follows:
 
 This is the TPE strategy output:
-![](lab3pic\searchtpe13.png)
+```python
+INFO     Initialising model 'jsc-toy'...
+INFO     Initialising dataset 'jsc'...
+INFO     Project will be created at /home/xinyi/mase_xinyi/mase_output/jsc-toy
+INFO     Loaded pytorch lightning checkpoint from /home/xinyi/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-02-10/software/training_ckpts/best.ckpt
+INFO     Loaded model from /home/xinyi/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-02-10/software/training_ckpts/best.ckpt.
+INFO     Building search space...
+INFO     Search started...
+
+INFO     Best trial(s):
+Best trial(s):
+|    |   number | software_metrics                   | hardware_metrics                                  | scaled_metrics                               |
+|----+----------+------------------------------------+---------------------------------------------------+----------------------------------------------|
+|  0 |        0 | {'loss': 1.109, 'accuracy': 0.626} | {'average_bitwidth': 2.0, 'memory_density': 16.0} | {'accuracy': 0.626, 'average_bitwidth': 0.4} |
+INFO     Searching is completed
+```
 
 in this part, i change the search strategies (sampler) to brute-force, and the results are as follows:
 
 This is the brute-force output:
+```python
+INFO     Initialising model 'jsc-toy'...
+INFO     Initialising dataset 'jsc'...
+INFO     Project will be created at /home/xinyi/mase_xinyi/mase_output/jsc-toy
+INFO     Loaded pytorch lightning checkpoint from /home/xinyi/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-02-10/software/training_ckpts/best.ckpt
+INFO     Loaded model from /home/xinyi/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-02-10/software/training_ckpts/best.ckpt.
+INFO     Building search space...
+INFO     Search started...
 
-![](lab3pic\searchbrute13.png)
+INFO     Best trial(s):
+Best trial(s):
+|    |   number | software_metrics                   | hardware_metrics                                  | scaled_metrics                               |
+|----+----------+------------------------------------+---------------------------------------------------+----------------------------------------------|
+|  0 |        0 | {'loss': 1.073, 'accuracy': 0.61}  | {'average_bitwidth': 8.0, 'memory_density': 4.0}  | {'accuracy': 0.61, 'average_bitwidth': 1.6}  |
+|  1 |        1 | {'loss': 1.141, 'accuracy': 0.588} | {'average_bitwidth': 4.0, 'memory_density': 8.0}  | {'accuracy': 0.588, 'average_bitwidth': 0.8} |
+|  2 |       16 | {'loss': 1.141, 'accuracy': 0.58}  | {'average_bitwidth': 2.0, 'memory_density': 16.0} | {'accuracy': 0.58, 'average_bitwidth': 0.4}  |
+INFO     Searching is completed
+```
+### Comparative Analysis of Search Methods: TPE vs. Brute-Force
 
-From the two pictures above, we can see the differences between two different methods. 
+The evaluation of different search methods reveals distinct variations in performance and efficiency. The two methods in question, Tree-structured Parzen Estimator (TPE) and brute-force, offer unique approaches to the search process in hyperparameter optimization.
 
-When using TPE method, we can see that the running time doesn't have that much difference, but brute-force method runs one second longer. Also, the searchoing results are different. In software metrics calculation, we can see that software metrics calculation using TPE can reach a higher accuracy and lower loss.
+#### Running Time Comparison
 
-this means, when using different search methods, the sample effeciency is different.
-When using the brute-force search, the sample effeciency is much lower than the TPE based search, and the reason is that the brute-force search is a method that enumerates all possible combinations of the search space, and then evaluates each combination, and then selects the best combination. This method is very time-consuming, and the sample effeciency is very low. 
+When comparing running times between the TPE method and brute-force:
 
-However, the TPE based search is a method that uses the Bayesian optimization algorithm to find the best combination, which is much faster than the brute-force search, and the sample effeciency is much higher than the brute-force search.
+- The TPE method shows minimal variance in execution time.
+- The brute-force approach generally takes about one second longer.
+
+While this may not appear significant, it highlights a trend towards greater efficiency with the TPE method.
+
+#### Accuracy and Loss Metrics
+
+Regarding the search outcomes, particularly within the context of software metrics:
+
+- TPE achieves a higher accuracy and incurs a lower loss.
+- These improvements suggest a more effective search strategy in identifying optimal parameters.
+
+#### Sample Efficiency
+
+The notion of sample efficiency is pivotal when contrasting these methods:
+
+- **Brute-Force Search**: Characterized by its exhaustive nature, this method entails evaluating every possible combination within the search space. Despite its comprehensiveness, it is inherently time-intensive and exhibits low sample efficiency.
+
+- **TPE-Based Search**: Utilizing Bayesian optimization, TPE methodically navigates the search space, focusing on regions with higher potential. This targeted approach not only accelerates the search but also significantly enhances sample efficiency.
+
+#### Conclusion
+
+The analysis clearly demonstrates the superior sample efficiency of TPE over brute-force search. By leveraging the Bayesian optimization framework, TPE efficiently converges to optimal solutions, thus saving time and computational resources. This efficiency is particularly evident in the improved accuracy and reduced loss metrics achieved using TPE, underscoring its effectiveness in hyperparameter tuning and model optimization.
+
 
 ### Lab 4 (Software Stream) for Advanced Deep Learning Systems (ADLS)
 

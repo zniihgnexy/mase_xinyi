@@ -1,5 +1,5 @@
 # basics
-model = "jsc-tiny"
+model = "jsc-toy"
 dataset = "jsc"
 task = "cls"
 
@@ -7,10 +7,10 @@ max_epochs = 5
 batch_size = 512
 learning_rate = 1e-2
 accelerator = "cpu"
-project = "jsc-tiny"
+project = "jsc-toy"
 seed = 42
 log_every_n_steps = 5
-load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-02-09/software/training_ckpts/best.ckpt"
+load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-02-10/software/training_ckpts/best.ckpt"
 load_type = "pl"
 
 [passes.quantize]
@@ -71,8 +71,8 @@ compare_to = 32 # compare to FP32
 n_jobs = 1
 n_trials = 20
 timeout = 20000
-sampler = "brute_force"
-# sampler = "tpe"
+# sampler = "brute_force"
+sampler = "tpe"
 # sum_scaled_metrics = true # single objective
 # direction = "maximize"
 sum_scaled_metrics = false # multi objective
