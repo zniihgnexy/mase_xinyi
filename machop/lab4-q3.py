@@ -99,6 +99,39 @@ mg, _ = init_metadata_analysis_pass(mg, None)
 print("original one")
 _ = report_graph_analysis_pass(mg)
 
+
+
+pass_config = {
+"by": "name",
+"default": {"config": {
+    "name": None,
+    "channel_multiplier": 1,
+    }
+},
+"seq_blocks_2": {
+    "config": {
+        "name": "output_only",
+        # weight
+        "channel_multiplier": 2,
+        "parent_block_name": "seq_blocks_1"
+        }
+    },
+"seq_blocks_3": {
+    "config": {
+        "name": "output_only",
+        "channel_multiplier": 4,
+        "parent_block_name": "seq_blocks_2"
+        }
+    },
+"seq_blocks_4": {
+    "config": {
+        "name": "input_only",
+        "channel_multiplier": 2,
+        "parent_block_name": "seq_blocks_3"
+        }
+    },
+}
+
 #####################################################################################################
 def instantiate_linear(in_features, out_features, bias):
     if bias is not None:
@@ -131,52 +164,30 @@ def redefine_linear_transform_pass(graph, pass_args=None):
                 bias = ori_module.bias
                 
                 if name == "output_only":
+                    print("original output features", out_features)
                     out_features = out_features * config["channel_multiplier"]
                     in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                    print("parent channel",main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"])
+                    print(f"output_only: {in_features}, {out_features}")
                 elif name == "both":
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                    print("original both features", in_features, out_features)
+                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"] * config["channel_multiplier"]
                     out_features = out_features * config["channel_multiplier"]
+                    print("parent channel",main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"])
+                    print(f"both: {in_features}, {out_features}")
                 # in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
                 # out_features = out_features * config["channel_multiplier"]
                 elif name == "input_only":
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
+                    print("original input features", in_features)
+                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"] * config["channel_multiplier"]
+                    print("parent channel",main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"])
+                    print(f"input_only: {in_features}, {out_features}")
                 new_module = instantiate_linear(in_features, out_features, bias)
                 parent_name, name = get_parent_name(node.target)
                 setattr(graph.modules[parent_name], name, new_module)
     return graph, {}
 
 
-
-pass_config = {
-"by": "name",
-"default": {"config": {
-    "name": None,
-    "channel_multiplier": 1,
-    }
-},
-"seq_blocks_2": {
-    "config": {
-        "name": "output_only",
-        # weight
-        "channel_multiplier": 2,
-        "parent_block_name": "seq_blocks_1"
-        }
-    },
-"seq_blocks_3": {
-    "config": {
-        "name": "both",
-        "channel_multiplier": 2,
-        "parent_block_name": "seq_blocks_2"
-        }
-    },
-"seq_blocks_4": {
-    "config": {
-        "name": "input_only",
-        "channel_multiplier": 2,
-        "parent_block_name": "seq_blocks_3"
-        }
-    },
-}
 
 # this performs the architecture transformation based on the config
 mg, _ = redefine_linear_transform_pass(

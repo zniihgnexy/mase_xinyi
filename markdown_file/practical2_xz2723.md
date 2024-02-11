@@ -270,7 +270,13 @@ The analysis clearly demonstrates the superior sample efficiency of TPE over bru
 
 ### 1. Can you edit your code, so that we can modify the above network to have layers expanded to double their sizes? Note: you will have to change the ReLU also.
 
-By modify the redefine function, we can double the input and output feature numbers by using a multiplier number 2 for calculation. I wrote a full configuration filefor the redefine function to read. The code is as follows:
+#### Network Expansion: Doubling Layer Sizes
+
+Adjusting neural network architectures to enhance performance often involves scaling the size of layers. In this example, we expand the layers of a network to double their original sizes. This process is guided by a configuration file that specifies how each layer should be altered.
+
+##### Configuration for Layer Expansion
+
+The configuration for expanding the layers is defined as follows:
 
 ```python
 pass_config = {
@@ -297,8 +303,11 @@ pass_config = {
     },
 }
 ```
+This pass_config ensures that each specified layer has its input and output features doubled, effectively expanding the network's capacity.
 
-After that i print out the configuration i have now for doubling the layers and here's the result i got:
+#### Results Before and After Modification
+
+The original network's structure is shown below:
 
 ```python
 INFO     Set logging level to info
@@ -318,7 +327,8 @@ Layer types:
 [BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), ReLU(inplace=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=5, bias=True), ReLU(inplace=True)]
 ```
 
-And after modification:
+After applying the configuration, the updated structure is as follows:
+
 ```python
 new one
 graph():
@@ -340,8 +350,15 @@ We can see the results of motiplier, the input of the linear layers are scaled b
 
 ### 2. In lab3, we have implemented a grid search, can we use the grid search to search for the best channel multiplier value?
 
-Using the grid search means to traverse the search space and find the best accuracy. In this case, i defined a loop to read the configuration and build the full search space based on this. But to calculation the overall performance of the network, ii need to retrain the network after get the searching cocnfiguration.
-The search space is as follows:
+Using the grid search means to traverse the search space and find the best accuracy.
+
+#### Optimizing Network Layers with Grid Search
+
+To enhance the model's learning capacity, we aim to determine the optimal channel multiplier value for layer expansion using grid search. This process involves configuring a search space with potential multiplier values and retraining the model to evaluate performance.
+
+#### Building the Search Space
+
+The search space for the channel multipliers is constructed using the following parameters:
 
 ```python
 multiplier_number = [1, 2, 3, 4, 5, 6]
@@ -359,6 +376,8 @@ for multiplier in multiplier_number:
     multiplier_search_space.append(copy.deepcopy(temp_pass_config))
 ```
 In this code, i defined the multiplier number and the layer number, and then i used a loop to read the configuration and build the full search space based on this. After that, i can use the optuna search strategy to search the best configuration of the multiplier number.
+
+#### Retraining the Model
 
 And for the training after getting the configuration, i used the following code to retrain the network:
 
@@ -382,6 +401,11 @@ And for the training after getting the configuration, i used the following code 
         load_type=None,
     )
 ```
+
+This function retrains the model with new layer configurations to assess the performance implications of each channel multiplier.
+
+#### Experiment Results
+
 One training procedure is like(take iteration 5 as an example):
     
 ```python
@@ -411,7 +435,7 @@ Epoch 0: 100%|██████████████████████
 Epoch 0: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 6168/6168 [01:32<00:00, 66.93it/s, v_num=55, train_acc_step=0.618, val_acc_epoch=0.732, val_loss_epoch=0.779]
 ```
 
-This procedure is within the search function, and the results are as follows:
+The results from the experiment indicate varying accuracies and latencies:
 
 ```python
 recorded_accs:  [tensor(0.6888), tensor(0.5930), tensor(0.6858), tensor(0.6890), tensor(0.6831), tensor(0.6956)]
@@ -420,13 +444,22 @@ recorded_latencies:  [0.07818484306335449, 0.09776568412780762, 0.09232139587402
 ```
 
 
-### 3. You may have noticed, one problem with the channel multiplier is that it scales all layers uniformly, ideally, we would like to be able to construct networks like the following: Can you then design a search so that it can reach a network that can have this kind of structure?
+## 3. You may have noticed, one problem with the channel multiplier is that it scales all layers uniformly, ideally, we would like to be able to construct networks like the following: Can you then design a search so that it can reach a network that can have this kind of structure?
 
 In this case, in order to change the input layer scales by 2 and output layer scaled by 4, we need to let this linear layer number two read the previous layer's configuration. The network of linear layers can only be correct if the input feature number and the previous output feature number are the same.
 
-So, to achieve the input layer feature number adjustment, i added a new configuration class called parent_channel. This config can read the block name of the parent layer, then i can read the corresponding configuration of the parent layer and get the multiplier i need.
+To modify the scaling of layers in a neural network, where the input and output features are scaled by different multipliers, a mechanism for layer-specific configuration is required. This enables the network to adapt each layer's dimensions based on the configuration of its preceding layers, ensuring the correct propagation of feature sizes throughout the model.
 
-The code i wrote to get the parent multiplier is as follows:
+### Strategy for Configuring Layer Multipliers
+
+The following approach outlines how to implement a configuration that allows a layer to scale its features according to the parent layer's settings:
+
+1. Define a `parent_channel` configuration class that holds information about the parent block's name and its corresponding multiplier.
+2. Ensure that the network's structure maintains coherence, such that the input features of a layer match the output features of its preceding layer.
+
+### Code Implementation
+
+The code snippet below illustrates how to retrieve and apply the parent layer's multiplier to adjust the current layer's input features:
 
 ```python
 pass_config = {
@@ -446,8 +479,8 @@ pass_config = {
     },
 "seq_blocks_3": {
     "config": {
-        "name": "both",
-        "channel_multiplier": 2,
+        "name": "output_only",
+        "channel_multiplier": 4,
         "parent_block_name": "seq_blocks_2"
         }
     },
@@ -462,7 +495,13 @@ pass_config = {
 
 ```
 
-After i have the previous multiplier, i also changed my redefine function of building a new model of the network. In this new network, i change the calculation of linear layer as follows:
+### Refining the Network Model with Customized Layer Scaling
+
+With the ability to ascertain the multiplier from the previous layer, the next step involves adapting the model reconstruction process to incorporate these dynamic scaling factors. The redefine function is crucial in this context, as it recalibrates the network's architecture to accommodate the newly computed dimensions for each layer.
+
+#### Modification to the Redefine Function
+
+The redefine function has been updated to alter the structure of linear layers based on the calculated multipliers:
 
 ```python
 if name == "output_only":
@@ -485,37 +524,47 @@ setattr(graph.modules[parent_name], name, new_module)
 
 After my modification, i can successfully run this code and change the third linear layer's input scaled by 2 and output scaled by 4.
 
-![](lab4pic\doubleQ3.png)
+#### Modification to the Redefine Function
 
-In this picture, we can get the initial values of the layers of: 
-
-[BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), ReLU(inplace=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=5, bias=True), ReLU(inplace=True)]
-
-Then I added the output layer's parameters and change the input scaled by 2 output scaled by 4. The results are as follows:
-
-[BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), ReLU(inplace=True), Linear(in_features=16, out_features=32, bias=True), Linear(in_features=32, out_features=32, bias=True), Linear(in_features=32, out_features=5, bias=True), ReLU(inplace=True)]
+The redefine function has been updated to alter the structure of linear layers based on the calculated multipliers:
 
 ```python
-# define a new model
-class JSC_Three_Linear_Layers(nn.Module):
-    def __init__(self):
-        super(JSC_Three_Linear_Layers, self).__init__()
-        self.seq_blocks = nn.Sequential(
-            nn.BatchNorm1d(16),
-            nn.ReLU(16),
-            nn.Linear(16, 32),  # output scaled by 2
-            nn.ReLU(32),  # scaled by 2
-            nn.Linear(32, 64),  # input scaled by 2 but output scaled by 4
-            nn.ReLU(64),  # scaled by 4
-            nn.Linear(64, 5),  # scaled by 4
-            nn.ReLU(5),
-        )
-
-    def forward(self, x):
-        return self.seq_blocks(x)
+INFO     Set logging level to info
+original one
+graph():
+    %x : [num_users=1] = placeholder[target=x]
+    %seq_blocks_0 : [num_users=1] = call_module[target=seq_blocks.0](args = (%x,), kwargs = {})
+    %seq_blocks_1 : [num_users=1] = call_module[target=seq_blocks.1](args = (%seq_blocks_0,), kwargs = {})
+    %seq_blocks_2 : [num_users=1] = call_module[target=seq_blocks.2](args = (%seq_blocks_1,), kwargs = {})
+    %seq_blocks_3 : [num_users=1] = call_module[target=seq_blocks.3](args = (%seq_blocks_2,), kwargs = {})
+    %seq_blocks_4 : [num_users=1] = call_module[target=seq_blocks.4](args = (%seq_blocks_3,), kwargs = {})
+    %seq_blocks_5 : [num_users=1] = call_module[target=seq_blocks.5](args = (%seq_blocks_4,), kwargs = {})
+    return seq_blocks_5
+Network overview:
+{'placeholder': 1, 'get_attr': 0, 'call_function': 0, 'call_method': 0, 'call_module': 6, 'output': 1}
+Layer types:
+[BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), ReLU(inplace=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=5, bias=True), ReLU(inplace=True)]
+```
+Then I added the output layer's parameters and change the input scaled by 2 output scaled by 4. The results are as follows:
+```python
+new one
+graph():
+    %x : [num_users=1] = placeholder[target=x]
+    %seq_blocks_0 : [num_users=1] = call_module[target=seq_blocks.0](args = (%x,), kwargs = {})
+    %seq_blocks_1 : [num_users=1] = call_module[target=seq_blocks.1](args = (%seq_blocks_0,), kwargs = {})
+    %seq_blocks_2 : [num_users=1] = call_module[target=seq_blocks.2](args = (%seq_blocks_1,), kwargs = {})
+    %seq_blocks_3 : [num_users=1] = call_module[target=seq_blocks.3](args = (%seq_blocks_2,), kwargs = {})
+    %seq_blocks_4 : [num_users=1] = call_module[target=seq_blocks.4](args = (%seq_blocks_3,), kwargs = {})
+    %seq_blocks_5 : [num_users=1] = call_module[target=seq_blocks.5](args = (%seq_blocks_4,), kwargs = {})
+    return seq_blocks_5
+Network overview:
+{'placeholder': 1, 'get_attr': 0, 'call_function': 0, 'call_method': 0, 'call_module': 6, 'output': 1}
+Layer types:
+[BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), ReLU(inplace=True), Linear(in_features=16, out_features=32, bias=True), Linear(in_features=32, out_features=64, bias=True), Linear(in_features=128, out_features=5, bias=True), ReLU(inplace=True)]
 ```
 
-###### 4. Integrate the search to the chop flow, so we can run it from the command line.
+
+### 4. Integrate the search to the chop flow, so we can run it from the command line.
 
 To integrate my search to the chop flow, i opened a new folder parallel with the quantize search space folder, in order to change my search space to my own defined space of multiplier number of the layers. As shown in the graph below is my defined search space .toml file:
 
@@ -548,9 +597,23 @@ channel_multiplier = [1, 2]
 
 ```
 
-For i'm using the newest three layers version of network, i need to consider the connection between different laters. In this case, the input of the next linear layer has to be the same as the previous output layer. To achieve this, apart from modify the changes of multiplier channel settings, i also added a parent level multiplier configuration as shown in previous code bar. Using this, i can read the configuration of the parent node's multiplier. The input of the latter layer will be the original output layer multiplies with the multiplier of the parent layer. And this keeps the network parameters calculatable.
+# Coherent Layer Connectivity in Network Architecture
 
-Then is how to define the new generated graph and build the search procedure in order to use optuna search strategy. I inherited SearchBase  class and using a redefine function here to build the new graph. The redefine function is as below:
+The design of a neural network requires meticulous attention to the connectivity between layers, particularly when customizing layer sizes. The newest version of the network under consideration includes three layers, each demanding precise input-output matching for seamless data flow. To ensure the network's integrity, the input dimension of each layer must align with the output dimension of its preceding layer. This necessitates a multi-tiered configuration strategy that synchronizes the input and output dimensions across the network.
+
+### Synchronizing Layer Inputs and Outputs
+
+To ensure that the input dimension of a subsequent layer corresponds to the output dimension of its preceding layer, a multi-tiered configuration strategy is employed:
+
+1. **Channel Multiplier Settings**: Each layer's scaling factor is adjusted to maintain the network's functional integrity. In this case, I modified linear, ReLU, and batch normalization layers to accommodate the scaling factor, ensuring that the input and output dimensions align with the parent layer's configuration.
+   
+2. **Parent Level Multiplier Configuration**: Introduced in the previous section, this configuration allows the network to infer the scaling factor from the parent layer, ensuring that the subsequent layer's input dimension aligns with the prior layer's output.
+
+The resulting architecture ensures that the network's parameters remain calculable and coherent, preserving the integrity of data processing throughout the network.
+
+### Graph Redefinition and Search Strategy Implementation
+
+To facilitate the search for the optimal network structure, a redefine function is implemented within the context of the SearchBase class:
 
 ```python
 def redefine_transform_pass(graph, pass_args=None):
@@ -619,7 +682,10 @@ def redefine_transform_pass(graph, pass_args=None):
 
 In this function, i build new nodes based on the type of the layers. Different layers have different calculation function. For example, the linear layer has input and output features, these features defined thid module's calculation. So when rebuild the linear layer, we have to give them the correct numbers of input output features. Also, ReLU layer only has a place holder, so in order to rebuild the ReLU layer, we only need to give the correct placeholder value, which is a bool value.
 
+### Rebuilding Neural Network Layers in a Custom Graph
+
 For i'm using the jsc-three-layer model, i only wrote three types of layers definition for rebuilding the graph. And the definition functions are as follows:
+
 
 ```python
 def instantiate_linear(in_features, out_features, bias):
@@ -637,17 +703,48 @@ def instantiate_batchnorm(num_features, eps, momentum, affine, track_running_sta
     return nn.BatchNorm1d(num_features, eps, momentum, affine, track_running_stats)
 ```
 
-The result of searching is as follows:
-![](lab4pic\search.png)
+The result of searching is as follows, taking the 17th trial as an example: train 10 epochs eachtime redefine the network. My .toml file setting is like:
+    
+```toml
+[search.strategy]
+name = "optuna"
+eval_mode = false
 
-![](lab4pic\search-2.png)
+[search.strategy.sw_runner.basic_train]
+name = "accuracy"
+data_loader = "train_dataloader"
+num_samples = 1000000
+max_epochs = 10
+lr_scheduler = "linear"
+optimizer = "adam"
+learning_rate = 1e-4
+num_warmup_steps = 0
+```
+In my setting here, i set the eval_model to false, this will automatically retrain the network after getting the configuration. The results are as follows:
+```python
+Best trial: 1. Best value: 0.521101:  95%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████▍      | 19/20 [02:32<00:08,  8.12s/it, 152.83/20000 seconds]training mode
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': 'output_only', 'channel_multiplier': 2, 'parent_block_name': 'seq_blocks_1'}
+{'name': 'both', 'parent_block_name': 'seq_blocks_2', 'channel_multiplier': 3}
+{'name': 'input_only', 'parent_block_name': 'seq_blocks_3', 'channel_multiplier': 6}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+WARNING  No quantized layers found in the model, set average_bitwidth to 32
+Best trial: 1. Best value: 0.521101: 100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [02:40<00:00,  8.04s/it, 160.84/20000 seconds]
+INFO     Best trial(s):
+Best trial(s):
+|    |   number | software_metrics                   | hardware_metrics                                | scaled_metrics      |
+|----+----------+------------------------------------+-------------------------------------------------+---------------------|
+|  0 |        1 | {'loss': 1.252, 'accuracy': 0.521} | {'average_bitwidth': 32, 'memory_density': 1.0} | {'accuracy': 0.521} |
+INFO     Searching is completed
+```
 
-![](lab4pic\search-3.png)
-
-![](lab4pic\search-4.png)
-
-![](lab4pic\search-5.png)
-
-From the searching results above we can see the best configuration here is number 11 and the setting is channel multiplier {linear 1: 1, linear 2: 2, linear 3: 1} and the loss value is 1.623, accuracy is 0.21 for software metrics calculation.
-
-Next i tried other multipliers numeber settings, and the results are as follows:
+From the searching results above we can see the best configuration here is number 17 and the setting is channel multiplier 
+```python
+{'name': 'output_only', 'channel_multiplier': 2, 'parent_block_name': 'seq_blocks_1'}
+{'name': 'both', 'parent_block_name': 'seq_blocks_2', 'channel_multiplier': 3}
+{'name': 'input_only', 'parent_block_name': 'seq_blocks_3', 'channel_multiplier': 6}
+```
+and the loss value is 1.268, accuracy is 0.496 for software metrics calculation. The average bitwidth is 32 and the memory density is 1.0 for hardware metrics calculation. The accuracy is 0.496 for scaled metrics calculation.
