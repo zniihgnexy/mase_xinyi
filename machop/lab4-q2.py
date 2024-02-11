@@ -207,7 +207,7 @@ def redefine_linear_transform_pass(graph, pass_args=None):
 #####################################################################################################
 # define search grid of multipliers
 
-multiplier_number = [1, 2, 3, 4]
+multiplier_number = [1, 2, 3, 4, 5, 6]
 # name_cannels = ["input_only", "output_only", "both"]
 layer_number = [2, 4, 6]
 multiplier_search_space = []
