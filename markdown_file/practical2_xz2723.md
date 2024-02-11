@@ -266,9 +266,9 @@ The notion of sample efficiency is pivotal when contrasting these methods:
 The analysis clearly demonstrates the superior sample efficiency of TPE over brute-force search. By leveraging the Bayesian optimization framework, TPE efficiently converges to optimal solutions, thus saving time and computational resources. This efficiency is particularly evident in the improved accuracy and reduced loss metrics achieved using TPE, underscoring its effectiveness in hyperparameter tuning and model optimization.
 
 
-### Lab 4 (Software Stream) for Advanced Deep Learning Systems (ADLS)
+## Lab 4 (Software Stream) for Advanced Deep Learning Systems (ADLS)
 
-###### 1. Can you edit your code, so that we can modify the above network to have layers expanded to double their sizes? Note: you will have to change the ReLU also.
+### 1. Can you edit your code, so that we can modify the above network to have layers expanded to double their sizes? Note: you will have to change the ReLU also.
 
 By modify the redefine function, we can double the input and output feature numbers by using a multiplier number 2 for calculation. I wrote a full configuration filefor the redefine function to read. The code is as follows:
 
@@ -300,15 +300,127 @@ pass_config = {
 
 After that i print out the configuration i have now for doubling the layers and here's the result i got:
 
-![](lab4pic\doubleQ1.png)
+```python
+INFO     Set logging level to info
+original one
+graph():
+    %x : [num_users=1] = placeholder[target=x]
+    %seq_blocks_0 : [num_users=1] = call_module[target=seq_blocks.0](args = (%x,), kwargs = {})
+    %seq_blocks_1 : [num_users=1] = call_module[target=seq_blocks.1](args = (%seq_blocks_0,), kwargs = {})
+    %seq_blocks_2 : [num_users=1] = call_module[target=seq_blocks.2](args = (%seq_blocks_1,), kwargs = {})
+    %seq_blocks_3 : [num_users=1] = call_module[target=seq_blocks.3](args = (%seq_blocks_2,), kwargs = {})
+    %seq_blocks_4 : [num_users=1] = call_module[target=seq_blocks.4](args = (%seq_blocks_3,), kwargs = {})
+    %seq_blocks_5 : [num_users=1] = call_module[target=seq_blocks.5](args = (%seq_blocks_4,), kwargs = {})
+    return seq_blocks_5
+Network overview:
+{'placeholder': 1, 'get_attr': 0, 'call_function': 0, 'call_method': 0, 'call_module': 6, 'output': 1}
+Layer types:
+[BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), ReLU(inplace=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=16, bias=True), Linear(in_features=16, out_features=5, bias=True), ReLU(inplace=True)]
+```
 
-###### 2. In lab3, we have implemented a grid search, can we use the grid search to search for the best channel multiplier value?
+And after modification:
+```python
+new one
+graph():
+    %x : [num_users=1] = placeholder[target=x]
+    %seq_blocks_0 : [num_users=1] = call_module[target=seq_blocks.0](args = (%x,), kwargs = {})
+    %seq_blocks_1 : [num_users=1] = call_module[target=seq_blocks.1](args = (%seq_blocks_0,), kwargs = {})
+    %seq_blocks_2 : [num_users=1] = call_module[target=seq_blocks.2](args = (%seq_blocks_1,), kwargs = {})
+    %seq_blocks_3 : [num_users=1] = call_module[target=seq_blocks.3](args = (%seq_blocks_2,), kwargs = {})
+    %seq_blocks_4 : [num_users=1] = call_module[target=seq_blocks.4](args = (%seq_blocks_3,), kwargs = {})
+    %seq_blocks_5 : [num_users=1] = call_module[target=seq_blocks.5](args = (%seq_blocks_4,), kwargs = {})
+    return seq_blocks_5
+Network overview:
+{'placeholder': 1, 'get_attr': 0, 'call_function': 0, 'call_method': 0, 'call_module': 6, 'output': 1}
+Layer types:
+[BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True), ReLU(inplace=True), Linear(in_features=16, out_features=32, bias=True), Linear(in_features=32, out_features=32, bias=True), Linear(in_features=32, out_features=5, bias=True), ReLU(inplace=True)]
+```
 
-Using the grid search means to traverse the search space and find the best accuracy. In this case, i defined a loop to read the configuration and build the full search space based on this. The code and results are as follows:
+We can see the results of motiplier, the input of the linear layers are scaled by 2 and the output of them are scaled by 2.
+
+### 2. In lab3, we have implemented a grid search, can we use the grid search to search for the best channel multiplier value?
+
+Using the grid search means to traverse the search space and find the best accuracy. In this case, i defined a loop to read the configuration and build the full search space based on this. But to calculation the overall performance of the network, ii need to retrain the network after get the searching cocnfiguration.
+The search space is as follows:
+
+```python
+multiplier_number = [1, 2, 3, 4, 5, 6]
+# name_cannels = ["input_only", "output_only", "both"]
+layer_number = [2, 4, 6]
+multiplier_search_space = []
+
+for multiplier in multiplier_number:
+    # for name in name_cannels:
+    temp_pass_config = copy.deepcopy(pass_config)
+    temp_pass_config[f"seq_blocks_2"]['config']['channel_multiplier'] = multiplier 
+    temp_pass_config[f"seq_blocks_4"]['config']['channel_multiplier'] = multiplier 
+    temp_pass_config[f"seq_blocks_6"]['config']['channel_multiplier'] = multiplier 
+    # temp_pass_config[f"seq_blocks_{layer}"]['config']['name'] = name_cannels
+    multiplier_search_space.append(copy.deepcopy(temp_pass_config))
+```
+In this code, i defined the multiplier number and the layer number, and then i used a loop to read the configuration and build the full search space based on this. After that, i can use the optuna search strategy to search the best configuration of the multiplier number.
+
+And for the training after getting the configuration, i used the following code to retrain the network:
+
+```python
+    train(
+        model,
+        model_info,
+        data_module,
+        dataset_info=get_dataset_info(dataset_name),
+        task="cls",
+        optimizer="adam",
+        learning_rate=1e-3,
+        weight_decay=1e-3,
+        plt_trainer_args={
+            "max_epochs": 1,
+        },
+        auto_requeue=False,
+        save_path=None,
+        visualizer=None,
+        load_name=None,
+        load_type=None,
+    )
+```
+One training procedure is like(take iteration 5 as an example):
+    
+```python
+number of this iteration:  5
+the config:  {'by': 'name', 'seq_blocks_2': {'config': {'name': 'output_only', 'channel_multiplier': 6, 'parent_block_name': 'seq_blocks_1'}}, 'seq_blocks_4': {'config': {'name': 'both', 'channel_multiplier': 6, 'parent_block_name': 'seq_blocks_2'}}, 'seq_blocks_6': {'config': {'name': 'input_only', 'channel_multiplier': 6, 'parent_block_name': 'seq_blocks_4'}}, 'default': {'config': {'name': None}}}
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name      | Type               | Params
+-------------------------------------------------
+0 | model     | GraphModule        | 11.5 K
+1 | loss_fn   | CrossEntropyLoss   | 0     
+2 | acc_train | MulticlassAccuracy | 0     
+3 | acc_val   | MulticlassAccuracy | 0     
+4 | acc_test  | MulticlassAccuracy | 0     
+5 | loss_val  | MeanMetric         | 0     
+6 | loss_test | MeanMetric         | 0     
+-------------------------------------------------
+11.5 K    Trainable params
+0         Non-trainable params
+11.5 K    Total params
+0.046     Total estimated model params size (MB)
+Epoch 0: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 6168/6168 [01:32<00:00, 66.94it/s, v_num=55, train_acc_step=0.618, val_acc_epoch=0.732, val_loss_epoch=0.779]`Trainer.fit` stopped: `max_epochs=1` reached.                                                                                                                                                                                     
+Epoch 0: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████| 6168/6168 [01:32<00:00, 66.93it/s, v_num=55, train_acc_step=0.618, val_acc_epoch=0.732, val_loss_epoch=0.779]
+```
+
+This procedure is within the search function, and the results are as follows:
+
+```python
+recorded_accs:  [tensor(0.6888), tensor(0.5930), tensor(0.6858), tensor(0.6890), tensor(0.6831), tensor(0.6956)]
+
+recorded_latencies:  [0.07818484306335449, 0.09776568412780762, 0.09232139587402344, 0.1297626495361328, 0.17051362991333008, 0.24888229370117188]
+```
 
 
-
-###### 3. You may have noticed, one problem with the channel multiplier is that it scales all layers uniformly, ideally, we would like to be able to construct networks like the following: Can you then design a search so that it can reach a network that can have this kind of structure?
+### 3. You may have noticed, one problem with the channel multiplier is that it scales all layers uniformly, ideally, we would like to be able to construct networks like the following: Can you then design a search so that it can reach a network that can have this kind of structure?
 
 In this case, in order to change the input layer scales by 2 and output layer scaled by 4, we need to let this linear layer number two read the previous layer's configuration. The network of linear layers can only be correct if the input feature number and the previous output feature number are the same.
 

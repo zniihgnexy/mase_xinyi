@@ -42,11 +42,12 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
         # ), "Must specify entry `by` (config['setup']['by] = 'name' or 'type')"
 
 
-    def rebuild_model(self, sampled_config, is_eval_mode: bool = True):
+    def rebuild_model(self, sampled_config, is_eval_mode: bool = False):
         self.model.to(self.accelerator)
         if is_eval_mode:
             self.model.eval()
         else:
+            print("training mode")
             self.model.train()
 
         if self.mg is None:
