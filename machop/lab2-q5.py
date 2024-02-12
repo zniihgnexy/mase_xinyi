@@ -100,12 +100,12 @@ _ = model(**dummy_in)
 pass_args = {
     "by": "type",
     "default": {"config": {"name": None}},
-    "linear": {
+    "relu": {
         "config": {
             "name": "integer",
             "data_in_width": 16,
             "data_in_frac_width": 8,
-            "weight_width": 8,
+            "weight_width": 16,
             "weight_frac_width": 4,
             "bias_width": 8,
             "bias_frac_width": 4,
@@ -131,6 +131,11 @@ _ = report_graph_analysis_pass(ori_mg)
 print("report original pass")
 ori_mg, _ = report_node_meta_param_analysis_pass(ori_mg, {"which": ("software",)})
 
+mg = ori_mg
+# mg = MaseGraph(model=model)
+# mg, _ = init_metadata_analysis_pass(mg, None)
+# mg, _ = add_common_metadata_analysis_pass(mg, {"dummy_in": dummy_in})
+# mg, _ = add_software_metadata_analysis_pass(mg, None)
 mg, _ = quantize_transform_pass(ori_mg, pass_args)
     
 _ = report_graph_analysis_pass(mg)

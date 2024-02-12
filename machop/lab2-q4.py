@@ -221,8 +221,8 @@ pass_args_1 = {
             "data_in_width": 16,
             "data_in_frac_width": 8,
             # weight
-            "weight_width": 8,
-            "weight_frac_width": 4,
+            "weight_width": 16,
+            "weight_frac_width": 8,
             # bias
             "bias_width": 8,
             "bias_frac_width": 4,

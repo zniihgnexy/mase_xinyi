@@ -69,36 +69,68 @@ In model optimization, integrating various quality metrics beyond accuracy and l
 Latency is a critical metric, especially in real-time applications where response time is crucial. The following code measures the latency of a model by recording the time taken to make predictions:
 
 ```python
-import time
-import torch.nn as nn
+for i, config in enumerate(search_spaces):
+    print("the configurations: ", config) 
+    mg, _ = quantize_transform_pass(mg, config)
+    # evaluate(mg, data_module, metric, num_batchs, recorded_accs)
+    j = 0
+    train(
+        model,
+        model_info,
+        data_module,
+        dataset_info=get_dataset_info(dataset_name),
+        task="cls",
+        optimizer="adam",
+        learning_rate=1e-3,
+        weight_decay=1e-3,
+        plt_trainer_args={
+            "max_epochs": 1,
+        },
+        auto_requeue=False,
+        save_path=None,
+        visualizer=None,
+        load_name=None,
+        load_type=None,
+    )
 
-accs = []
-losses = []
-latencies = []
-num_batches = 100  # Define the number of batches to measure
-j = 0
+    # this is the inner loop, where we also call it as a runner.
+    acc_avg, loss_avg = 0, 0
+    accs, losses = [], []
+    latency = 0
+    for inputs in data_module.train_dataloader():
+        xs, ys = inputs
+        start = time.time()
+        preds = mg.model(xs)
+        end = time.time()
+        loss = torch.nn.functional.cross_entropy(preds, ys)
+        acc = metric(preds, ys)
+        accs.append(acc)
+        losses.append(loss)
+        if j > num_batchs:
+            break
+        j += 1
+        # layer = get_mase_type(mg.fx_graph.nodes[1])
+        # if layer == 'linear':
+        #     print('in out features in path', mg.model.layer.in_features, mg.model.layer.out_features)
+        #     flops_number += mg.model.layer.in_features * mg.model.layer.out_features
+        #     print('flop numbers 1', flops_number)
+        #     layers_number += 1
+        #     print('layers number', layers_number)
 
-for inputs in data_module.train_dataloader():
-    xs, ys = inputs
-    start = time.time()
-    preds = new_mg.model(xs)
-    end = time.time()
-    latency = end - start
-    latencies.append(latency)
-    
-    loss = nn.functional.cross_entropy(preds, ys)
-    losses.append(loss.item())
-    
-    acc = (preds.argmax(dim=1) == ys).float().mean()
-    accs.append(acc.item())
+        latency += end - start
+    acc_avg = sum(accs) / len(accs)
+    loss_avg = sum(losses) / len(losses)
 
-    if j >= num_batches:
-        break
-    j += 1
+    recorded_accs.append(acc_avg)
+    recorded_latencies.append(latency)
+# recorded_model_sizes.append(model_size)
+# recorded_flops.append(flops)
+print("recorded_acc", recorded_accs)
+print("recorded_latency", recorded_latencies)
 
-# Calculate and print the average latency
-average_latency = sum(latencies) / len(latencies)
-print(f'Average Latency: {average_latency:.5f} seconds')
+model_size = get_model_size(mg)
+print("model size: ", model_size)
+recorded_size.append(model_size)
 ```
 
 This snippet wraps the model's prediction step with time.time() calls to measure the processing time, contributing to the total latency. The average latency is then computed over a defined number of batches to provide a reliable estimate.
@@ -106,8 +138,32 @@ This snippet wraps the model's prediction step with time.time() calls to measure
 ### Results and Interpretation
 The initial results, showing accuracy and latency, were as follows:
 ```python
-recorded_acc [tensor(0.1934)]
-recorded_latency [0.002038717269897461]
+GPU available: True (cuda), used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+HPU available: False, using: 0 HPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name      | Type               | Params
+-------------------------------------------------
+0 | model     | JSC_Tiny           | 117   
+1 | loss_fn   | CrossEntropyLoss   | 0     
+2 | acc_train | MulticlassAccuracy | 0     
+3 | acc_val   | MulticlassAccuracy | 0     
+4 | acc_test  | MulticlassAccuracy | 0     
+5 | loss_val  | MeanMetric         | 0     
+6 | loss_test | MeanMetric         | 0     
+-------------------------------------------------
+117       Trainable params
+0         Non-trainable params
+117       Total params
+0.000     Total estimated model params size (MB)
+Sanity Checking: |                                                                                                                                        | 0/? [00:00<?, ?it/s]/home/xinyi/anaconda3/envs/mase/lib/python3.11/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'val_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=19` in the `DataLoader` to improve performance.
+/home/xinyi/anaconda3/envs/mase/lib/python3.11/site-packages/pytorch_lightning/trainer/connectors/data_connector.py:441: The 'train_dataloader' does not have many workers which may be a bottleneck. Consider increasing the value of the `num_workers` argument` to `num_workers=19` in the `DataLoader` to improve performance.
+Epoch 0: 100%|███████████████████████████████████████████████████| 6168/6168 [01:04<00:00, 95.17it/s, v_num=73, train_acc_step=0.662, val_acc_epoch=0.708, val_loss_epoch=0.880]`Trainer.fit` stopped: `max_epochs=1` reached.                                                                                                                                  
+Epoch 0: 100%|███████████████████████████████████████████████████| 6168/6168 [01:04<00:00, 95.16it/s, v_num=73, train_acc_step=0.662, val_acc_epoch=0.708, val_loss_epoch=0.880]
+recorded_acc [tensor(0.1523), tensor(0.1384), tensor(0.1273), tensor(0.1538), tensor(0.1187), tensor(0.1370), tensor(0.1266), tensor(0.1512), tensor(0.1112), tensor(0.1077), tensor(0.1097), tensor(0.1487), tensor(0.1240), tensor(0.1236), tensor(0.1218), tensor(0.1616)]
+recorded_latency [0.014786720275878906, 0.2998020648956299, 0.030277490615844727, 0.003553628921508789, 0.15761995315551758, 0.1359543800354004, 0.00632786750793457, 0.0747523307800293, 0.11380672454833984, 0.19562816619873047, 0.1622936725616455, 0.21605515480041504, 0.00809788703918457, 0.23328256607055664, 0.004468441009521484, 0.1602919101715088]
 ```
 ### Accuracy and Loss as Congruent Metrics
 Accuracy and loss are indeed often used interchangeably as quality metrics in classification tasks. This is particularly true when using a loss function like cross-entropy, which directly relates to classification accuracy. The cross-entropy loss is minimized when the predicted probability distribution aligns with the actual distribution, which simultaneously maximizes accuracy.
