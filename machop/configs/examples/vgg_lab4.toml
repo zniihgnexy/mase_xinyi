@@ -15,9 +15,10 @@ load_type = "pl"
 
 [search.search_space]
 name = "graph/quantize/channel_size_modifier"
+# name = "graph/quantize/mixed_precision_ptq"
 
-#[search.search_space.setup]
-#by = 'name'
+# [search.search_space.setup]
+# by = 'name'
 
 [search.search_space.seed.default.config]
 # the only choice "NA" is used to indicate that layers are not quantized by default
@@ -26,18 +27,18 @@ channel_multiplier = [1]
 
 [search.search_space.seed.seq_blocks_2.config]
 name = ["output_only"]
-channel_multiplier = [1, 2, 4]
+channel_multiplier = [1]
 parent_block_name = ["seq_blocks_1"]
 
 [search.search_space.seed.seq_blocks_5.config]
 name = ["both"]
 parent_block_name = ["seq_blocks_2"]
-channel_multiplier = [1, 2, 4]
+channel_multiplier = [1, 2]
 
 
 [search.strategy]
 name = "optuna"
-eval_mode = false
+eval_mode = true
 
 [search.strategy.sw_runner.basic_evaluation]
 data_loader = "val_dataloader"

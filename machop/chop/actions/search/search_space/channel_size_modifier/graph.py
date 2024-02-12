@@ -51,6 +51,7 @@ class ChannelSizeModifierZXY(SearchSpaceBase):
             self.model.train()
 
         if self.mg is None:
+            # print("model info", self.model_info)
             assert self.model_info.is_fx_traceable, "Model must be fx traceable"
             mg = MaseGraph(self.model)
             mg, _ = init_metadata_analysis_pass(mg, None)

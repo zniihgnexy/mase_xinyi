@@ -57,11 +57,11 @@ Choosing the optimal maximum epoch number is crucial for balancing training effi
 
 | epoch | batch_size | learning_rate | training loss | validation loss |
 | :---: | :--------: | :-----------: | :-----------: | :-------------: |
-|  10   |    256     |    0.0001     |    0.9919     |     0.9922      |
-|  50   |    256     |    0.0001     |    0.9283     |      0.859      |
-|  100  |    256     |    0.0001     |     1.073     |     0.8435      |
-|  150  |    256     |    0.0001     |    0.8844     |      0.84       |
-|  200  |    256     |    0.0001     |    0.6919     |     0.8382      |
+|  10   |    256     |    0.0001     |    0.9920     |     0.9832      |
+|  50   |    256     |    0.0001     |    0.9284     |      0.879      |
+|  100  |    256     |    0.0001     |     1.122     |     0.8435      |
+|  150  |    256     |    0.0001     |    0.8845     |      0.84       |
+|  200  |    256     |    0.0001     |    0.6919     |     0.8383      |
 
 The table show the training loss and validation loss with respect to the change of epochs. When the epoch is small than 50, the training loss decreases with increasing epochs. When the epoch is larger than 150, the training loss is much smaller than validation loss, indicating an overfitting problem.
 
@@ -87,11 +87,11 @@ Selecting an appropriate learning rate in conjunction with the right batch size 
 
 | epoch | batch_size | learning_rate | training loss | validation loss |
 | :---: | :--------: | :-----------: | :-----------: | :-------------: |
-|  50   |    256     |      0.1      |     1.229     |      1.197      |
-|  50   |    256     |     0.001     |    0.9184     |      0.832      |
-|  50   |    256     |    0.0001     |    0.9283     |      0.859      |
-|  50   |    256     |    0.00001    |     1.214     |      1.094      |
-|  50   |    256     |   0.000001    |     1.388     |      1.354      |
+|  50   |    256     |      0.1      |     1.229     |      1.189      |
+|  50   |    256     |     0.001     |    0.9185     |      0.833      |
+|  50   |    256     |    0.0001     |    0.9288     |      0.859      |
+|  50   |    256     |    0.00001    |     1.222     |      1.095      |
+|  50   |    256     |   0.000001    |     1.398     |      1.361      |
 
 ## 4. Implement a network that has in total around 10x more parameters than the toy network.
 using the similiar structure as the toy network, I implemented a network that has in total around 10x more parameters. the structure is shown below:
@@ -625,3 +625,20 @@ bitops 42240.0
 ```
 
 my calculation functions are based on flops calculation and use the conputation value inside the flop calculation function. then using the frount calculation number to calculate the BitOPs number.
+
+## Optional task of lab2: FLOPs and BitOPs
+
+I use the funtion defined in the source code to calculate the FLOPs. About BitOPs, i simply calculate the number of bit calculation persuming all the data are multiplied between layers. The results are as below:
+
+```python
+store_flops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'total_parameters': 32, 'computations': 512, 'backward_computations': 512, 'input_buffer_size': 128, 'output_buffer_size': 128}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 128, 'backward_computations': 128, 'input_buffer_size': 128, 'output_buffer_size': 128}, Linear(in_features=16, out_features=5, bias=True): {'total_parameters': 80, 'computations': 640.0, 'backward_computations': 1280.0, 'input_buffer_size': 128, 'output_buffer_size': 40}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 40, 'backward_computations': 40, 'input_buffer_size': 40, 'output_buffer_size': 40}}
+store_bitops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'computations': 512, 'bitops': 16384}, ReLU(inplace=True): {'computations': 128, 'bitops': 4096}, Linear(in_features=16, out_features=5, bias=True): {'computations': 640.0, 'bitops': 20480.0}, ReLU(inplace=True): {'computations': 40, 'bitops': 1280}}
+flops 1320.0
+bitops 42240.0
+
+parameters of element size 16 4
+parameters of element size 16 4
+parameters of element size 80 4
+parameters of element size 5 4
+model size:  468
+```

@@ -19,6 +19,7 @@ from chop.ir.graph.mase_graph import MaseGraph
 
 
 def get_optimizer(model, optimizer: str, learning_rate, weight_decay=0.0):
+    # load model
     if isinstance(model, MaseGraph):
         model = model.model
     no_decay = ["bias", "LayerNorm.weight"]
@@ -63,6 +64,7 @@ class RunnerBasicTrain(SWRunnerBase):
         self._setup_metric()
 
     def _setup_metric(self):
+        # add detection for physical model, use the same type of calculation
         if self.model_info.is_vision_model or self.model_info.is_physical_model:
             match self.task:
                 case "classification" | "cls":
@@ -112,6 +114,7 @@ class RunnerBasicTrain(SWRunnerBase):
         return {"loss": loss, "accuracy": acc}
 
     def forward(self, task: str, batch: dict, model):
+        # use the same type of calculation here
         if self.model_info.is_vision_model or self.model_info.is_physical_model:
             match self.task:
                 case "classification" | "cls":
@@ -165,7 +168,8 @@ class RunnerBasicTrain(SWRunnerBase):
         # model = torch.compile(model)
 
         optimizer = get_optimizer(
-            model=model,
+            # load model here
+            model=model.model,
             optimizer=self.config["optimizer"],
             learning_rate=self.config["learning_rate"],
             weight_decay=self.config.get("weight_decay", 0.0),

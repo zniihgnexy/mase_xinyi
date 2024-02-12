@@ -4,6 +4,7 @@
 
 # from chop.passes.graph.analysis.flop_estimator.calc_modules import calculate_modules
 
+import copy
 import torch
 
 
@@ -237,6 +238,18 @@ def calculate_modules_bitop(node, module, in_data, out_data):
     else:
         print("Unsupported module type for analysis:", type(module))
 
+def compute_model_size(model):
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+
+    # size_all_mb = (param_size + buffer_size) / 1024**2
+    size_all_mb = (param_size + buffer_size)
+    #
+    return size_all_mb
 
 import sys
 import logging
@@ -311,10 +324,48 @@ mg = MaseGraph(model=model)
 mg, _ = init_metadata_analysis_pass(mg, None)
 mg, _ = add_common_metadata_analysis_pass(mg, {"dummy_in": dummy_in})
 
-
-
 from chop.passes.graph.utils import get_node_actual_target
 
+# pass_args = {
+# "by": "type",
+# "default": {"config": {"name": None}},
+# "linear": {
+#         "config": {
+#             "name": "integer",
+#             # data
+#             "data_in_width": 8,
+#             "data_in_frac_width": 4,
+#             # weight
+#             "weight_width": 8,
+#             "weight_frac_width": 4,
+#             # bias
+#             "bias_width": 8,
+#             "bias_frac_width": 4,
+#         }
+# },}
+
+# # build a search space
+# data_in_frac_widths = [(16, 8), (8, 6), (8, 4), (4, 2)]
+# w_in_frac_widths = [(16, 8), (8, 6), (8, 4), (4, 2)]
+# search_spaces = []
+# for d_config in data_in_frac_widths:
+#     for w_config in w_in_frac_widths:
+#         pass_args['linear']['config']['data_in_width'] = d_config[0]
+#         pass_args['linear']['config']['data_in_frac_width'] = d_config[1]
+#         pass_args['linear']['config']['weight_width'] = w_config[0]
+#         pass_args['linear']['config']['weight_frac_width'] = w_config[1]
+#         # dict.copy() and dict(dict) only perform shallow copies
+#         # in fact, only primitive data types in python are doing implicit copy when a = b happens
+#         search_spaces.append(copy.deepcopy(pass_args))
+
+# # print(search_spaces)
+
+# # grid search
+# mg, _ = init_metadata_analysis_pass(ori_mg, None)
+# mg, _ = add_common_metadata_analysis_pass(mg, {"dummy_in": dummy_in})
+# mg, _ = add_software_metadata_analysis_pass(mg, None)
+
+# model_size_1 = 0
 flop = 0
 store_flops_calculation = {}
 # import pdb; pdb.set_trace()
@@ -330,9 +381,11 @@ for node in mg.fx_graph.nodes:
         current_flops = calculate_modules(module, in_data, out_data)
         store_flops_calculation[module] = current_flops
         flop += current_flops['computations']
+        # model_size_1 += compute_model_size(model)
         
 print("store_flops_data", store_flops_calculation)
 
+model_size = 0
 bitops = 0
 store_bitops_calculation = {}
 for node in mg.fx_graph.nodes:
@@ -347,7 +400,12 @@ for node in mg.fx_graph.nodes:
         current_bitops = calculate_modules_bitop(node, module, in_data, out_data)
         store_bitops_calculation[module] = current_bitops
         bitops += current_bitops['bitops']
+        model_size += compute_model_size(model)
+    
+    # model_size += compute_model_size(model)
 
 print("store_bitops_data", store_bitops_calculation)
 print("flops", flop)
 print("bitops", bitops)
+print("model_size", model_size)
+print("model size first", model_size_1)

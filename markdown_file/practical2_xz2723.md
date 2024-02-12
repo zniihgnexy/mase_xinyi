@@ -1,35 +1,26 @@
-## Optional task of lab2: FLOPs and BitOPs
-
-I use the funtion defined in the source code to calculate the FLOPs. About BitOPs, i simply calculate the number of bit calculation persuming all the data are multiplied between layers. The results are as below:
-
-```python
-store_flops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'total_parameters': 32, 'computations': 512, 'backward_computations': 512, 'input_buffer_size': 128, 'output_buffer_size': 128}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 128, 'backward_computations': 128, 'input_buffer_size': 128, 'output_buffer_size': 128}, Linear(in_features=16, out_features=5, bias=True): {'total_parameters': 80, 'computations': 640.0, 'backward_computations': 1280.0, 'input_buffer_size': 128, 'output_buffer_size': 40}, ReLU(inplace=True): {'total_parameters': 0, 'computations': 40, 'backward_computations': 40, 'input_buffer_size': 40, 'output_buffer_size': 40}}
-store_bitops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'computations': 512, 'bitops': 16384}, ReLU(inplace=True): {'computations': 128, 'bitops': 4096}, Linear(in_features=16, out_features=5, bias=True): {'computations': 640.0, 'bitops': 20480.0}, ReLU(inplace=True): {'computations': 40, 'bitops': 1280}}
-flops 1320.0
-bitops 42240.0
-
-parameters of element size 16 4
-parameters of element size 16 4
-parameters of element size 80 4
-parameters of element size 5 4
-model size:  468
-```
-
 # Lab 3 for Advanced Deep Learning Systems (ADLS)
 
 ## 1. Explore additional metrics that can serve as quality metrics for the search process. For example, you can consider metrics such as latency, model size, or the number of FLOPs (floating-point operations) involved in the model.
 
 #### for counting model size: Using model size as a quality metric, i defined a function as follows:
 ```python
-def get_model_size(mg):
-    model_size = 0
-    for param in mg.model.parameters():
-        print('parameters of element size', param.nelement(), param.element_size())
-        model_size += param.nelement() * param.element_size()
-    return model_size
+def compute_model_size(model):
+    param_size = 0
+    for param in model.parameters():
+        param_size += param.nelement() * param.element_size()
+    buffer_size = 0
+    for buffer in model.buffers():
+        buffer_size += buffer.nelement() * buffer.element_size()
+
+    # size_all_mb = (param_size + buffer_size) / 1024**2
+    size_all_mb = (param_size + buffer_size)
+    #
+    return size_all_mb
 
 ```
-in the calculation here, i used the chop library to calculate the FLOPs, which is the calculate_modules function. the calculation of different layers are as follows:
+For calculating model size, i simply calculate teh parameters size and the size of the buffers. In this calculation, i didn't count the bit-wise size but simply count the element size.
+
+Then in the calculation of FLOPs, i used the chop library to calculate the FLOPs, which is the calculate_modules function. the calculation of different layers are as follows:
 
 (1) for the linear layer:
 ```python
@@ -137,7 +128,7 @@ $$
 
 Both metrics rely on the concept of one-hot encoding for classification, where the prediction is considered correct if the highest probability is assigned to the true class. Thus, as the loss decreases (indicating better predictions), the accuracy inherently increases, demonstrating their interconnectedness.
 
-#### Conclusion
+### Conclusion
 Latency, when combined with accuracy and loss, can yield a holistic view of the model's operational performance. While accuracy and loss are intrinsically linked through the mechanics of the cross-entropy loss function in classification tasks, incorporating latency provides an additional dimension of quality, reflecting the practical deployment considerations of the model.
 
 
@@ -181,7 +172,7 @@ sum_scaled_metrics = false # multi objective
 
 Here i used "brute-force" sampler for strategy, so this file can directly use the sampler written in optuna.py file, which is BruteforceSampler() function.
 
-#### 4. Compare the brute-force search with the TPE based search, in terms of sample efficiency. Comment on the performance difference between the two search methods.
+## 4. Compare the brute-force search with the TPE based search, in terms of sample efficiency. Comment on the performance difference between the two search methods.
 
 compare these two methods, i only need to change the sampler in the .toml file:
 
@@ -266,15 +257,15 @@ The notion of sample efficiency is pivotal when contrasting these methods:
 The analysis clearly demonstrates the superior sample efficiency of TPE over brute-force search. By leveraging the Bayesian optimization framework, TPE efficiently converges to optimal solutions, thus saving time and computational resources. This efficiency is particularly evident in the improved accuracy and reduced loss metrics achieved using TPE, underscoring its effectiveness in hyperparameter tuning and model optimization.
 
 
-## Lab 4 (Software Stream) for Advanced Deep Learning Systems (ADLS)
+# Lab 4 (Software Stream) for Advanced Deep Learning Systems (ADLS)
 
-### 1. Can you edit your code, so that we can modify the above network to have layers expanded to double their sizes? Note: you will have to change the ReLU also.
+## 1. Can you edit your code, so that we can modify the above network to have layers expanded to double their sizes? Note: you will have to change the ReLU also.
 
-#### Network Expansion: Doubling Layer Sizes
+### Network Expansion: Doubling Layer Sizes
 
 Adjusting neural network architectures to enhance performance often involves scaling the size of layers. In this example, we expand the layers of a network to double their original sizes. This process is guided by a configuration file that specifies how each layer should be altered.
 
-##### Configuration for Layer Expansion
+#### Configuration for Layer Expansion
 
 The configuration for expanding the layers is defined as follows:
 
@@ -305,7 +296,7 @@ pass_config = {
 ```
 This pass_config ensures that each specified layer has its input and output features doubled, effectively expanding the network's capacity.
 
-#### Results Before and After Modification
+### Results Before and After Modification
 
 The original network's structure is shown below:
 
@@ -348,15 +339,15 @@ Layer types:
 
 We can see the results of motiplier, the input of the linear layers are scaled by 2 and the output of them are scaled by 2.
 
-### 2. In lab3, we have implemented a grid search, can we use the grid search to search for the best channel multiplier value?
+## 2. In lab3, we have implemented a grid search, can we use the grid search to search for the best channel multiplier value?
 
 Using the grid search means to traverse the search space and find the best accuracy.
 
-#### Optimizing Network Layers with Grid Search
+### Optimizing Network Layers with Grid Search
 
 To enhance the model's learning capacity, we aim to determine the optimal channel multiplier value for layer expansion using grid search. This process involves configuring a search space with potential multiplier values and retraining the model to evaluate performance.
 
-#### Building the Search Space
+### Building the Search Space
 
 The search space for the channel multipliers is constructed using the following parameters:
 
@@ -377,7 +368,7 @@ for multiplier in multiplier_number:
 ```
 In this code, i defined the multiplier number and the layer number, and then i used a loop to read the configuration and build the full search space based on this. After that, i can use the optuna search strategy to search the best configuration of the multiplier number.
 
-#### Retraining the Model
+### Retraining the Model
 
 And for the training after getting the configuration, i used the following code to retrain the network:
 
@@ -404,7 +395,7 @@ And for the training after getting the configuration, i used the following code 
 
 This function retrains the model with new layer configurations to assess the performance implications of each channel multiplier.
 
-#### Experiment Results
+### Experiment Results
 
 One training procedure is like(take iteration 5 as an example):
     
@@ -444,20 +435,20 @@ recorded_latencies:  [0.07818484306335449, 0.09776568412780762, 0.09232139587402
 ```
 
 
-## 3. You may have noticed, one problem with the channel multiplier is that it scales all layers uniformly, ideally, we would like to be able to construct networks like the following: Can you then design a search so that it can reach a network that can have this kind of structure?
+# 3. You may have noticed, one problem with the channel multiplier is that it scales all layers uniformly, ideally, we would like to be able to construct networks like the following: Can you then design a search so that it can reach a network that can have this kind of structure?
 
 In this case, in order to change the input layer scales by 2 and output layer scaled by 4, we need to let this linear layer number two read the previous layer's configuration. The network of linear layers can only be correct if the input feature number and the previous output feature number are the same.
 
 To modify the scaling of layers in a neural network, where the input and output features are scaled by different multipliers, a mechanism for layer-specific configuration is required. This enables the network to adapt each layer's dimensions based on the configuration of its preceding layers, ensuring the correct propagation of feature sizes throughout the model.
 
-### Strategy for Configuring Layer Multipliers
+## Strategy for Configuring Layer Multipliers
 
 The following approach outlines how to implement a configuration that allows a layer to scale its features according to the parent layer's settings:
 
 1. Define a `parent_channel` configuration class that holds information about the parent block's name and its corresponding multiplier.
 2. Ensure that the network's structure maintains coherence, such that the input features of a layer match the output features of its preceding layer.
 
-### Code Implementation
+## Code Implementation
 
 The code snippet below illustrates how to retrieve and apply the parent layer's multiplier to adjust the current layer's input features:
 
@@ -495,11 +486,11 @@ pass_config = {
 
 ```
 
-### Refining the Network Model with Customized Layer Scaling
+## Refining the Network Model with Customized Layer Scaling
 
 With the ability to ascertain the multiplier from the previous layer, the next step involves adapting the model reconstruction process to incorporate these dynamic scaling factors. The redefine function is crucial in this context, as it recalibrates the network's architecture to accommodate the newly computed dimensions for each layer.
 
-#### Modification to the Redefine Function
+### Modification to the Redefine Function
 
 The redefine function has been updated to alter the structure of linear layers based on the calculated multipliers:
 
@@ -524,7 +515,7 @@ setattr(graph.modules[parent_name], name, new_module)
 
 After my modification, i can successfully run this code and change the third linear layer's input scaled by 2 and output scaled by 4.
 
-#### Modification to the Redefine Function
+### Modification to the Redefine Function
 
 The redefine function has been updated to alter the structure of linear layers based on the calculated multipliers:
 
@@ -564,7 +555,7 @@ Layer types:
 ```
 
 
-### 4. Integrate the search to the chop flow, so we can run it from the command line.
+## 4. Integrate the search to the chop flow, so we can run it from the command line.
 
 To integrate my search to the chop flow, i opened a new folder parallel with the quantize search space folder, in order to change my search space to my own defined space of multiplier number of the layers. As shown in the graph below is my defined search space .toml file:
 
@@ -597,7 +588,7 @@ channel_multiplier = [1, 2]
 
 ```
 
-# Coherent Layer Connectivity in Network Architecture
+## Coherent Layer Connectivity in Network Architecture
 
 The design of a neural network requires meticulous attention to the connectivity between layers, particularly when customizing layer sizes. The newest version of the network under consideration includes three layers, each demanding precise input-output matching for seamless data flow. To ensure the network's integrity, the input dimension of each layer must align with the output dimension of its preceding layer. This necessitates a multi-tiered configuration strategy that synchronizes the input and output dimensions across the network.
 
@@ -748,3 +739,47 @@ From the searching results above we can see the best configuration here is numbe
 {'name': 'input_only', 'parent_block_name': 'seq_blocks_3', 'channel_multiplier': 6}
 ```
 and the loss value is 1.268, accuracy is 0.496 for software metrics calculation. The average bitwidth is 32 and the memory density is 1.0 for hardware metrics calculation. The accuracy is 0.496 for scaled metrics calculation.
+
+# Optional task
+
+Using Vgg7 model for training and change the linear layer sizes:
+
+I used the same search space searching method that i defined before then
+```python
+INFO     Building search space...
+model info MaseModelInfo(name='vgg7', model_source=<ModelSource.VISION_OTHERS: 'vision_others'>, task_type=<ModelTaskType.VISION: 'vision'>, image_classification=True, physical_data_point_classification=False, sequence_classification=False, seq2seqLM=False, causal_LM=False, is_quantized=False, is_lora=False, is_sparse=False, is_fx_traceable=True)
+{'x/config/name': [None], 'x/config/channel_multiplier': [1], 'feature_layers_0/config/name': [None], 'feature_layers_0/config/channel_multiplier': [1], 'feature_layers_1/config/name': [None], 'feature_layers_1/config/channel_multiplier': [1], 'feature_layers_2/config/name': [None], 'feature_layers_2/config/channel_multiplier': [1], 'feature_layers_3/config/name': [None], 'feature_layers_3/config/channel_multiplier': [1], 'feature_layers_4/config/name': [None], 'feature_layers_4/config/channel_multiplier': [1], 'feature_layers_5/config/name': [None], 'feature_layers_5/config/channel_multiplier': [1], 'feature_layers_6/config/name': [None], 'feature_layers_6/config/channel_multiplier': [1], 'feature_layers_7/config/name': [None], 'feature_layers_7/config/channel_multiplier': [1], 'feature_layers_8/config/name': [None], 'feature_layers_8/config/channel_multiplier': [1], 'feature_layers_9/config/name': [None], 'feature_layers_9/config/channel_multiplier': [1], 'feature_layers_10/config/name': [None], 'feature_layers_10/config/channel_multiplier': [1], 'feature_layers_11/config/name': [None], 'feature_layers_11/config/channel_multiplier': [1], 'feature_layers_12/config/name': [None], 'feature_layers_12/config/channel_multiplier': [1], 'feature_layers_13/config/name': [None], 'feature_layers_13/config/channel_multiplier': [1], 'feature_layers_14/config/name': [None], 'feature_layers_14/config/channel_multiplier': [1], 'feature_layers_15/config/name': [None], 'feature_layers_15/config/channel_multiplier': [1], 'feature_layers_16/config/name': [None], 'feature_layers_16/config/channel_multiplier': [1], 'feature_layers_17/config/name': [None], 'feature_layers_17/config/channel_multiplier': [1], 'feature_layers_18/config/name': [None], 'feature_layers_18/config/channel_multiplier': [1], 'feature_layers_19/config/name': [None], 'feature_layers_19/config/channel_multiplier': [1], 'feature_layers_20/config/name': [None], 'feature_layers_20/config/channel_multiplier': [1], 'view/config/name': [None], 'view/config/channel_multiplier': [1], 'classifier_0/config/name': [None], 'classifier_0/config/channel_multiplier': [1], 'classifier_1/config/name': [None], 'classifier_1/config/channel_multiplier': [1], 'classifier_2/config/name': [None], 'classifier_2/config/channel_multiplier': [1], 'classifier_3/config/name': [None], 'classifier_3/config/channel_multiplier': [1], 'last_layer/config/name': [None], 'last_layer/config/channel_multiplier': [1], 'output/config/name': [None], 'output/config/channel_multiplier': [1]}
+INFO     Search started...
+  0%|                                                                                                                                                     | 0/20 [00:00<?, ?it/s]model info MaseModelInfo(name='vgg7', model_source=<ModelSource.VISION_OTHERS: 'vision_others'>, task_type=<ModelTaskType.VISION: 'vision'>, image_classification=True, physical_data_point_classification=False, sequence_classification=False, seq2seqLM=False, causal_LM=False, is_quantized=False, is_lora=False, is_sparse=False, is_fx_traceable=True)
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+{'name': None, 'channel_multiplier': 1}
+Killed
+```
+Due to some unknown errors here, i couldn't run the whole training process for vgg. But this here chould show the fact that i don't have major errors for this method.
