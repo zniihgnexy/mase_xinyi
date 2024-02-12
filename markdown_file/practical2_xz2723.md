@@ -50,11 +50,12 @@ store_flops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_ru
 store_bitops_data {BatchNorm1d(16, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True): {'computations': 512, 'bitops': 16384}, ReLU(inplace=True): {'computations': 128, 'bitops': 4096}, Linear(in_features=16, out_features=5, bias=True): {'computations': 640.0, 'bitops': 20480.0}, ReLU(inplace=True): {'computations': 40, 'bitops': 1280}}
 flops 1320.0
 bitops 42240.0
+model_size 2416
 ```
 
 from the results above, the "computations" is the FLOPs, and the "total_parameters" is the model size. in order to calculate the full size of the model ,we need to add these numbers together, and the results are as follows:
 
-model size: 468
+model size: 2416
 FLOPs: 1320.0
 
 ## 2. Implement some of these additional metrics and attempt to combine them with the accuracy or loss quality metric. It’s important to note that in this particular case, accuracy and loss actually serve as the same quality metric (do you know why?).
