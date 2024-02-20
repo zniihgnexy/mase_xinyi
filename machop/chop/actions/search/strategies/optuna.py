@@ -10,6 +10,11 @@ from .base import SearchStrategyBase
 
 from chop.passes.module.analysis import calculate_avg_bits_module_analysis_pass
 
+from chop.actions.train import train
+from chop.dataset import MaseDataModule, get_dataset_info
+from chop.models import get_model_info, get_model
+from chop.tools.logger import get_logger
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,6 +58,8 @@ class SearchStrategyOptuna(SearchStrategyBase):
                 sampler = optuna.samplers.NSGAIIISampler()
             case "qmc":
                 sampler = optuna.samplers.QMCSampler()
+            case "brute_force":
+                sampler = optuna.samplers.BruteForceSampler()
             case _:
                 raise ValueError(f"Unknown sampler name: {name}")
         return sampler
@@ -91,6 +98,27 @@ class SearchStrategyOptuna(SearchStrategyBase):
 
         is_eval_mode = self.config.get("eval_mode", True)
         model = search_space.rebuild_model(sampled_config, is_eval_mode)
+        # print("config")
+        # print(self.config)
+        
+        # train(
+        #     model,
+        #     model_info = get_model_info(self.config["setup"]["model_name"]),
+        #     data_module = self.data_module,
+        #     dataset_info = get_dataset_info(self.config["setup"]["dataset_name"]),
+        #     task="cls",
+        #     optimizer="adam",
+        #     learning_rate=1e-3,
+        #     weight_decay=1e-3,
+        #     plt_trainer_args={
+        #         "max_epochs": 1,
+        #     },
+        #     auto_requeue=False,
+        #     save_path=None,
+        #     visualizer=None,
+        #     load_name=None,
+        #     load_type=None,
+        # )
 
         software_metrics = self.compute_software_metrics(
             model, sampled_config, is_eval_mode
