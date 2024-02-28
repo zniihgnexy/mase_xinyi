@@ -17,8 +17,7 @@ from torch.utils.data import DataLoader
 from .base import SWRunnerBase
 
 import torch.nn.functional as F
-
-from ....search_space.zero_cost_nas.foresight.pruners.predictive import find_measures
+from ....search_space.zero_cost_nas.pruners.predictive import find_measures
 
 
 def get_optimizer(model, optimizer: str, learning_rate, weight_decay=0.0):

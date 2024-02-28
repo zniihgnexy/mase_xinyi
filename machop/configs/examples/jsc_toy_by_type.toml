@@ -10,8 +10,8 @@ accelerator = "gpu"
 project = "jsc-tiny"
 seed = 42
 log_every_n_steps = 5
-# load_name = "../mase_output/toy_toy_tiny/software/training_ckpts/best.ckpt"
-# load_type = "pl"
+# load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-02-09/software/training_ckpts/best.ckpt"
+load_type = "pl"
 
 [passes.quantize]
 by = "type"
@@ -59,6 +59,9 @@ bias_frac_width = ["NA"]
 [search.strategy]
 name = "optuna"
 eval_mode = true
+
+[search.sw_runner]
+name = "zero_cost"
 
 [search.strategy.sw_runner.basic_evaluation]
 data_loader = "val_dataloader"

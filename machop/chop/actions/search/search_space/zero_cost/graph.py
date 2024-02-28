@@ -18,6 +18,8 @@ from .....passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_
 from ..utils import flatten_dict, unflatten_dict
 from collections import defaultdict
 
+# from nas_graph import load_bench_arch
+
 DEFAULT_CHANNEL_SIEZ_MODIFIER_CONFIG = {
     "config": {
         "name": None,
@@ -140,79 +142,27 @@ def instantiate_conv2d(in_channels, out_channels, kernel_size, stride, padding, 
         dtype = None,
     )
 
-def redefine_transform_pass(graph, pass_args=None):
-    # import pdb; pdb.set_trace()
-    # graph = copy.deepcopy(ori_graph)
-    # graph = torch.nn.DataParallel(graph)
-    main_config = pass_args.pop('config')
-    default = main_config.pop('default', None)
-    if default is None:
-        raise ValueError(f"default value must be provided.")
-    i = 0
+# def redefine_transform_pass(graph, pass_args=None):
+#     config = pass_args['arch_str']
+#     default = config.pop('default', None)
+#     if default is None:
+#         raise ValueError(f"default value must be provided.")
     
-    # import pdb; pdb.set_trace()
-    
-    
-    for node in graph.fx_graph.nodes:
-        i += 1
-        # if node name is not matched, it won't be tracked
-        config = main_config.get(node.name, default)['config']
-        # print("this iteration's config:")
-        print(config)
-        # if isinstance(get_node_actual_target(node), nn.Linear):
-        #     parent_config = main_config.get(config['parent_block_name'], default)['config']
-        name = config.get("name", None)
-        if isinstance(get_node_actual_target(node), nn.Linear):
-            if name is not None:
-                ori_module = graph.modules[node.target]
-                in_features = ori_module.in_features
-                out_features = ori_module.out_features
-                bias = ori_module.bias
+#     for i in len(config):
+#         op = config[i]
+#         len_op = len(op)
+#         for j in len_op:
+#             if op[j] is None:
+#                 op[j] = default
+            
+#             # if op[j] == 'nor_conv_3x3':
+            
+#             # if op[j] == 'skip_connect':
                 
-                if name == "output_only":
-                    out_features = out_features * config["channel_multiplier"]
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                elif name == "both":
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                    out_features = out_features * config["channel_multiplier"]
-                # in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                # out_features = out_features * config["channel_multiplier"]
-                elif name == "input_only":
-                    in_features = in_features * main_config.get(config['parent_block_name'], default)['config']["channel_multiplier"]
-                new_module = instantiate_linear(in_features, out_features, bias)
-                parent_name, name = get_parent_name(node.target)
-                setattr(graph.modules[parent_name], name, new_module)
-        elif isinstance(get_node_actual_target(node), ReLU):
-            if name is not None:
-                ori_module = graph.modules[node.target]
-                inplace = ori_module.inplace
-                new_module = instantiate_relu(inplace)
-                setattr(graph.modules[node.target], "inplace", inplace)
-        elif isinstance(get_node_actual_target(node), nn.BatchNorm1d):
-            # import pdb; pdb.set_trace()
-            # input_channel_number = config.get("input_channel_number", 16)
-            if name is not None:
-                ori_module = graph.modules[node.target]
-                num_features = ori_module.num_features
-                eps = ori_module.eps
-                momentum = ori_module.momentum
-                affine = ori_module.affine
-                track_running_stats = ori_module.track_running_stats
-                new_module = instantiate_batchnorm(num_features, eps, momentum, affine, track_running_stats)
-                parent_name, name = get_parent_name(node.target)
-                setattr(graph.modules[parent_name], name, new_module)
-        elif isinstance(get_node_actual_target(node), nn.Conv2d):
-            if name is not None:
-                ori_module = graph.modules[node.target]
-                in_channels = ori_module.in_channels
-                out_features = ori_module.out_channels
-                kernel_size = ori_module.kernel_size
-                stride = ori_module.stride
-                padding = ori_module.padding
-                dilation = ori_module.dilation
-                groups = ori_module.groups
-                bias = ori_module.bias
-                new_module = instantiate_conv2d(in_channels, out_features, kernel_size, stride, padding, dilation, groups, bias)
-                parent_name, name = get_parent_name(node.target)
-                setattr(graph.modules[parent_name], name, new_module)
-    return graph, {}
+#             # if op[j] == 'none':
+            
+#             # if op[j] == 'nor_conv_1x1':
+            
+#             # if op[j] == 'avg_pool_3x3':
+    
+#     return graph, {}

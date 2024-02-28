@@ -161,3 +161,4 @@ class GraphSearchSpaceMixedPrecisionPTQ(SearchSpaceBase):
         config["default"] = self.default_config
         config["by"] = self.config["setup"]["by"]
         return config
+
