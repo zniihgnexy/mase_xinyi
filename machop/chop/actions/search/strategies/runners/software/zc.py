@@ -141,7 +141,7 @@ class RunnerZeroCost(SWRunnerBase):
         train_dataloader = data_module.train_dataloader()
         dataload_info = ('random', 1, 10)
         device = self.accelerator
-        value = find_measures(model, 
+        value = find_measures(model_find, 
                               train_dataloader,
                               dataload_info, # a tuple with (dataload_type = {random, grasp}, number_of_batches_for_random_or_images_per_class_for_grasp, number of classes)
                               device, 

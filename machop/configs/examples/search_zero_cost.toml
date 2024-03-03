@@ -1,33 +1,20 @@
 # basics
-model = "jsc-tiny"
-dataset = "jsc"
+model = "vgg7"
+dataset = "cifar10"
 task = "cls"
 
 max_epochs = 5
 batch_size = 512
 learning_rate = 1e-2
 accelerator = "gpu"
-project = "jsc-tiny"
+project = "team_project"
 seed = 42
 log_every_n_steps = 5
-load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-02-09/software/training_ckpts/best.ckpt"
-load_type = "pl"
-
-[passes.quantize]
-by = "type"
-[passes.quantize.default.config]
-name = "NA"
-[passes.quantize.linear.config]
-name = "integer"
-"data_in_width" = 8
-"data_in_frac_width" = 4
-"weight_width" = 8
-"weight_frac_width" = 4
-"bias_width" = 8
-"bias_frac_width" = 4
+# load_name = "/xinyi/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-02-09/software/training_ckpts/best.ckpt"
+# load_type = "pl"
 
 [search.search_space]
-name = "graph/quantize/mixed_precision_ptq"
+name = "graph/software/zero_cost"
 
 [search.search_space.setup]
 by = "name"
@@ -36,25 +23,19 @@ by = "name"
 # the only choice "NA" is used to indicate that layers are not quantized by default
 name = ["NA"]
 
-[search.search_space.seed.linear.config]
-# if search.search_space.setup.by = "type", this seed will be used to quantize all torch.nn.Linear/ F.linear
-name = ["integer"]
-data_in_width = [4, 8]
-data_in_frac_width = ["NA"] # "NA" means data_in_frac_width = data_in_width // 2
-weight_width = [2, 4, 8]
-weight_frac_width = ["NA"]
-bias_width = [2, 4, 8]
-bias_frac_width = ["NA"]
-
-[search.search_space.seed.seq_blocks_2.config]
-# if search.search_space.setup.by = "name", this seed will be used to quantize the mase graph node with name "seq_blocks_2"
-name = ["integer"]
-data_in_width = [4, 8]
-data_in_frac_width = ["NA"]
-weight_width = [2, 4, 8]
-weight_frac_width = ["NA"]
-bias_width = [2, 4, 8]
-bias_frac_width = ["NA"]
+### search config
+[search.search_space.nas_zero_cost.config]
+name = ['infer.tiny']
+C = [16]
+N = [5]
+op_0_0 = [0]
+op_1_0 = [0,1,2,3,4]
+op_2_0 = [0,1,2,3,4]
+op_2_1 = [0,1,2,3,4]
+op_3_0 = [0,1,2,3,4]
+op_3_1 = [0,1,2,3,4]
+op_3_2 = [0,1,2,3,4]
+number_classes = [10]
 
 [search.strategy]
 name = "optuna"
@@ -72,7 +53,7 @@ compare_to = 32 # compare to FP32
 
 [search.strategy.setup]
 n_jobs = 1
-n_trials = 20
+n_trials = 500
 timeout = 20000
 sampler = "tpe"
 # sum_scaled_metrics = true # single objective

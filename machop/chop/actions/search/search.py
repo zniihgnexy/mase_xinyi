@@ -27,6 +27,8 @@ def parse_search_config(search_config):
     search_config = search_config["search"]  # the actual config for action search
     strategy_config = search_config["strategy"]
     search_space_config = search_config["search_space"]
+    print(strategy_config)
+    print(search_space_config)
 
     return strategy_config, search_space_config
 
@@ -72,6 +74,9 @@ def search(
         dummy_input=get_dummy_input(model_info, data_module, task, device=accelerator),
         accelerator=accelerator,
     )
+    print("space:")
+    print(search_space.config)
+    # search_space.build_search_space(search_space.config)
     search_space.build_search_space()
 
     # construct a search strategy
@@ -86,7 +91,7 @@ def search(
         save_dir=save_path,
         visualizer=visualizer,
     )
-
+    
     logger.info("Search started...")
     # perform search and save the results
     strategy.search(search_space)

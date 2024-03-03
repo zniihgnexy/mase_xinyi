@@ -18,14 +18,27 @@ from .....passes.graph.utils import get_mase_op, get_mase_type, get_node_actual_
 from ..utils import flatten_dict, unflatten_dict
 from collections import defaultdict
 
+from nas_201_api import NASBench201API as API
+from .xautodl.models import get_cell_based_tiny_net
+
 # from nas_graph import load_bench_arch
 
-DEFAULT_CHANNEL_SIEZ_MODIFIER_CONFIG = {
-    "config": {
-        "name": None,
-        "channel_multiplier": 1,
-    }
+### default architecture is the architecuture returned 
+### by api.get_net_config(0, 'cifar10') in nasbench201
+DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG = {
+    "config": {'name': ['infer.tiny'], 
+    'C': [16], 
+    'N': [5], 
+    'op_0_0': [0], 
+    'op_1_0': [4], 
+    'op_2_0': [2], 'op_2_1': [1], 
+    'op_3_0': [2], 'op_3_1': [1], 'op_3_2': [1], 
+    'number_classes': [10]}
 }
+
+print("loading api")
+api = API('/home/xz2723/mase_xinyi/machop/third_party/NAS-Bench-201-v1_1-096897.pth', verbose=False)
+print("api loaded")
 
 class ZeroCostProxy(SearchSpaceBase):
     """
@@ -36,36 +49,34 @@ class ZeroCostProxy(SearchSpaceBase):
         self.model.to("cpu")  # save this copy of the model to cpu
         self.mg = None
         self._node_info = None
-        self.default_config = DEFAULT_CHANNEL_SIEZ_MODIFIER_CONFIG
+        self.default_config = DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG
         
         # quantize the model by type or name
         # assert (
         #     "by" in self.config["setup"]
         # ), "Must specify entry `by` (config['setup']['by] = 'name' or 'type')"
 
-
     def rebuild_model(self, sampled_config, is_eval_mode: bool = False):
+        print("sampled_config")
+        print(sampled_config)
         self.model.to(self.accelerator)
         if is_eval_mode:
             self.model.eval()
         else:
             print("training mode")
             self.model.train()
+        # import pdb; pdb.set_trace()
+        if "nas_zero_cost" in sampled_config:
+            nas_config = generate_configs(sampled_config["nas_zero_cost"])
+        else:
+            nas_config = generate_configs(sampled_config["default"])
+        
+        print(nas_config)
 
-        if self.mg is None:
-            # print("model info", self.model_info)
-            assert self.model_info.is_fx_traceable, "Model must be fx traceable"
-            mg = MaseGraph(self.model)
-            mg, _ = init_metadata_analysis_pass(mg, None)
-            mg, _ = add_common_metadata_analysis_pass(
-                mg, {"dummy_in": self.dummy_input}
-            )
-            # self.mg = mg
-        if sampled_config is not None:
-            # ori_mg = mg.detach()
-            mg, _ = redefine_transform_pass(mg, {"config": sampled_config})
-        mg.model.to(self.accelerator)
-        return mg
+        model_arch = get_cell_based_tiny_net(nas_config)
+        model_arch = model_arch.to(self.accelerator)
+
+        return model_arch
 
     def _build_node_info(self):
         """
@@ -74,29 +85,20 @@ class ZeroCostProxy(SearchSpaceBase):
 
     def build_search_space(self):
         """
-        Build the search space for the mase graph (only quantizeable ops)
+        Build the search space for the zero-cose
         """
-        # Build a mapping from node name to mase_type and mase_op.
-        
-        # import pdb; pdb.set_trace()
-        
-        mase_graph = self.rebuild_model(sampled_config=None, is_eval_mode=True)
         choices = {}
-        seed = self.config["seed"]
-        
-        # import pdb; pdb.set_trace()
-        
-        for node in mase_graph.fx_graph.nodes:
-            if node.name in seed:
-                choices[node.name] = deepcopy(seed[node.name])
+        choices["nas_zero_cost"] = self.config["nas_zero_cost"]["config"]
+
+        for key, value in DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG["config"].items():
+            if key in choices["nas_zero_cost"]:
+                continue
             else:
-                choices[node.name] = deepcopy(seed["default"])
-                # choices[node.name] = DEFAULT_CHANNEL_SIEZ_MODIFIER_CONFIG["config"]
-        # import pdb; pdb.set_trace()
+                choices["nas_zero_cost"][key] = value
+        
         # flatten the choices and choice_lengths
         # self.choices_flattened = {}
         flatten_dict(choices, flattened=self.choices_flattened)
-        print(self.choices_flattened)
         
         self.choice_lengths_flattened = {
             k: len(v) for k, v in self.choices_flattened.items()
@@ -112,6 +114,15 @@ class ZeroCostProxy(SearchSpaceBase):
         config = unflatten_dict(flattened_config)
         config["default"] = self.default_config
         return config
+    
+    # def build_search_space(self, config_all):
+    #     # choises = {}
+        
+    #     self.choices_flattened = generate_configs(config_all)
+        
+    #     self.choice_lengths_flattened = {
+    #         k: len(v) for k, v in self.choices_flattened.items()
+    #     }
 
 def instantiate_linear(in_features, out_features, bias):
     if bias is not None:
@@ -142,27 +153,34 @@ def instantiate_conv2d(in_channels, out_channels, kernel_size, stride, padding, 
         dtype = None,
     )
 
-# def redefine_transform_pass(graph, pass_args=None):
-#     config = pass_args['arch_str']
-#     default = config.pop('default', None)
-#     if default is None:
-#         raise ValueError(f"default value must be provided.")
+import itertools
+
+def generate_configs(config_dict):
+
+    name = config_dict['name']
+    C = config_dict['C']
+    N = config_dict['N']
+    num_classes = config_dict['number_classes']
+    op_map = {0:'skip_connect', 1:'none', 2:'nor_conv_3x3', 3:'nor_conv_1x1', 4:'avg_pool_3x3'}
+
+    ### generate combination
+    arch_str = ""
+    for target_neuro in range(1, 4):
+        arch_str += "|"
+        for exert_neuro in range(0, target_neuro):
+            op = f"op_{target_neuro}_{exert_neuro}"
+            op_str = op_map[config_dict[op]]
+            op_str += f"~{exert_neuro}"
+            arch_str += (op_str + "|")
+        if target_neuro < 3:
+            arch_str += "+"
     
-#     for i in len(config):
-#         op = config[i]
-#         len_op = len(op)
-#         for j in len_op:
-#             if op[j] is None:
-#                 op[j] = default
-            
-#             # if op[j] == 'nor_conv_3x3':
-            
-#             # if op[j] == 'skip_connect':
-                
-#             # if op[j] == 'none':
-            
-#             # if op[j] == 'nor_conv_1x1':
-            
-#             # if op[j] == 'avg_pool_3x3':
-    
-#     return graph, {}
+    config = {
+        'name': name,
+        'C': C,
+        'N': N,
+        'arch_str': arch_str,
+        'num_classes': num_classes
+    }
+
+    return config

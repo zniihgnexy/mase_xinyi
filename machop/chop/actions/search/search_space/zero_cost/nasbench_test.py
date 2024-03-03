@@ -35,7 +35,7 @@ def convert_str_to_op_indices(str_encoding):
     return tuple(enc)
 
 # x = api.query_meta_info('cifar10', 'x-valid')
-config = api.get_net_config(1, 'cifar10')
+config = api.get_net_config(12, 'cifar10')
 print(config)
 
 # network = get_cell_based_tiny_net(config)

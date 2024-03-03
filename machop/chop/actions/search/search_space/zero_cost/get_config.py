@@ -51,7 +51,7 @@ def get_ops_and_parent_node(arch, arch_index):
 print("loading api")
 api = API('/home/xz2723/mase_xinyi/machop/third_party/NAS-Bench-201-v1_1-096897.pth', verbose=False)
 print("api loaded")
-config = api.get_net_config(1, 'cifar10')
+config = api.get_net_config(0, 'cifar10')
 
 print(config)
 print(config.keys())

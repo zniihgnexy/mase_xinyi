@@ -87,12 +87,17 @@ class SearchStrategyOptuna(SearchStrategyBase):
         else:
             for name, length in search_space.choice_lengths_flattened.items():
                 sampled_indexes[name] = trial.suggest_int(name, 0, length - 1)
+            
+            print("trial")
+            # print(trial._trial_id)
+            print(trial.params.items())
+            trial_params = trial.params.popitem()
+            print(trial_params)
             sampled_config = search_space.flattened_indexes_to_config(sampled_indexes)
-            print("sampled_config")
-            print(sampled_config)
 
         is_eval_mode = self.config.get("eval_mode", True)
         model = search_space.rebuild_model(sampled_config, is_eval_mode)
+        # print("model type", model.type)
 
         software_metrics = self.compute_software_metrics(
             model, sampled_config, is_eval_mode
