@@ -39,12 +39,16 @@ number_classes = [10]
 
 [search.strategy]
 name = "optuna"
-eval_mode = true
+eval_mode = false
 
 [search.sw_runner]
 name = "zero_cost"
 
-[search.strategy.sw_runner.basic_evaluation]
+[search.strategy.sw_runner.zero_cost]
+# metric can be chosen from 
+# "fisher", "grad_norm", "grasp", "jacob_cov", 
+# "l2_norm", "plain", "snip", "synflow"
+metrics = ["grad_norm", "snip", "grasp", "fisher", "jacob_cov", "plain", "synflow", "l2_norm"]
 data_loader = "val_dataloader"
 num_samples = 512
 
@@ -53,7 +57,7 @@ compare_to = 32 # compare to FP32
 
 [search.strategy.setup]
 n_jobs = 1
-n_trials = 500
+n_trials = 10
 timeout = 20000
 sampler = "tpe"
 # sum_scaled_metrics = true # single objective
@@ -61,9 +65,25 @@ sampler = "tpe"
 sum_scaled_metrics = false # multi objective
 
 [search.strategy.metrics]
+grad_norm.scale = 1.0
+grad_norm.direction = "maximize"
+snip.scale = 1.0
+snip.direction = "maximize"
+grasp.scale = 1.0
+grasp.direction = "maximize"
+fisher.scale = 1.0
+fisher.direction = "maximize"
+jacob_cov.scale = 1.0
+jacob_cov.direction = "maximize"
+plain.scale = 1.0
+plain.direction = "minimize"
+synflow.scale = 1.0
+synflow.direction = "minimize"
+l2_norm.scale = 1.0
+l2_norm.direction = "minimize"
 # loss.scale = 1.0
 # loss.direction = "minimize"
-accuracy.scale = 1.0
-accuracy.direction = "maximize"
+# accuracy.scale = 1.0
+# accuracy.direction = "maximize"
 average_bitwidth.scale = 0.2
 average_bitwidth.direction = "minimize"

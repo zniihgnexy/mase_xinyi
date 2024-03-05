@@ -51,6 +51,11 @@ def search(
         model: the model to be searched
     """
     # search preparation
+    print("model info")
+    print(model_info)
+    print("data_module")
+    print(data_module)
+
     accelerator = parse_accelerator(accelerator)
     strategy_config, search_space_config = parse_search_config(search_config)
     save_path.mkdir(parents=True, exist_ok=True)
@@ -91,7 +96,7 @@ def search(
         save_dir=save_path,
         visualizer=visualizer,
     )
-    
+
     logger.info("Search started...")
     # perform search and save the results
     strategy.search(search_space)
