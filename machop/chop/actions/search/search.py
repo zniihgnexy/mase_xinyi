@@ -1,6 +1,7 @@
 import logging
 from os import PathLike
 
+import pandas as pd
 import toml
 import torch
 
@@ -51,10 +52,10 @@ def search(
         model: the model to be searched
     """
     # search preparation
-    print("model info")
-    print(model_info)
-    print("data_module")
-    print(data_module)
+    # print("model info")
+    # print(model_info)
+    # print("data_module")
+    # print(data_module)
 
     accelerator = parse_accelerator(accelerator)
     strategy_config, search_space_config = parse_search_config(search_config)
@@ -79,8 +80,8 @@ def search(
         dummy_input=get_dummy_input(model_info, data_module, task, device=accelerator),
         accelerator=accelerator,
     )
-    print("space:")
-    print(search_space.config)
+    # print("space:")
+    # print(search_space.config)
     # search_space.build_search_space(search_space.config)
     search_space.build_search_space()
 
@@ -100,3 +101,27 @@ def search(
     logger.info("Search started...")
     # perform search and save the results
     strategy.search(search_space)
+
+    if strategy.zero_cost_mode:
+        strategy.zero_cost_weight()
+        print(strategy.zc_weight_model.coef_)
+        print(strategy.zc_proxy)
+        strategy.zc_proxy.to_excel("/home/xz2723/mase_xinyi/machop/results/proxy1.xlsx")
+        print(strategy.zc_true_accuracy)
+        # strategy.zc_true_accuracy.to_excel("../results/accuracy1.xlsx")
+
+        print(strategy.zc_weight_model.intercept_)
+        
+        predicted_accuracy = strategy.zc_weight_model.predict(strategy.zc_proxy)
+        print(predicted_accuracy)
+        
+        results = pd.DataFrame({
+            'Architecture_Index': range(len(predicted_accuracy)),
+            'Predicted_Accuracy': predicted_accuracy,
+            'True Accuracy': strategy.zc_true_accuracy
+        })
+        
+        sorted_results = results.sort_values(by='Predicted_Accuracy', ascending=False)
+        print("Sorted Results:")
+        print(sorted_results)
+        sorted_results.to_excel("/home/xz2723/mase_xinyi/machop/results/sorted_results.xlsx")

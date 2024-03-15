@@ -58,8 +58,8 @@ def get_optimizer(model, optimizer: str, learning_rate, weight_decay=0.0):
 class RunnerZeroCost(SWRunnerBase):
 
     def _post_init_setup(self) -> None:
-        self.available_metrics = ["fisher", "grad_norm", "grasp", "jacob_cov", "l2_norm",
-                         "plain", "snip", "synflow"]
+        self.available_metrics = ["fisher", "grad_norm", "grasp", "l2_norm",
+                         "plain", "snip", "synflow", "naswot", "naswot_relu", "tenas", "zico"]
         self.loss = MeanMetric().to(self.accelerator)
         self._setup_metric()
 
@@ -150,9 +150,11 @@ class RunnerZeroCost(SWRunnerBase):
 
         dataload_info = ('random', 1, 10)
         device = self.accelerator
-
+        
+        # import pdb; pdb.set_trace()
         for metric_name in metric_names:
             if metric_name in self.available_metrics:
+                # print(f"Computing {metric_name}")
                 zero_cost_metrics[metric_name] = find_measures(model, 
                                                 dataloader,
                                                 dataload_info, # a tuple with (dataload_type = {random, grasp}, number_of_batches_for_random_or_images_per_class_for_grasp, number of classes)
@@ -161,6 +163,6 @@ class RunnerZeroCost(SWRunnerBase):
                                                 measure_names=[metric_name],
                                                 measures_arr=None)[metric_name]
             else:
-                raise ValueError("Zero cost metrics should be chosen from ['fisher', 'grad_norm', 'grasp', 'jacob_cov', 'l2_norm', 'plain', 'snip', 'synflow']!!!")
+                raise ValueError("Zero cost metrics should be chosen from ['fisher', 'grad_norm', 'grasp', 'l2_norm', 'plain', 'snip', 'synflow', 'naswot', 'naswot_relu', 'tenas', 'zico']!!!")
 
         return zero_cost_metrics

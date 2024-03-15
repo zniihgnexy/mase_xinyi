@@ -21,6 +21,8 @@ from collections import defaultdict
 from nas_201_api import NASBench201API as API
 from .xautodl.models import get_cell_based_tiny_net
 
+from .model_spec import ModelSpec
+
 # from nas_graph import load_bench_arch
 
 ### default architecture is the architecuture returned 
@@ -37,7 +39,8 @@ DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG = {
 }
 
 print("loading api")
-api = API('/home/xz2723/mase_xinyi/machop/third_party/NAS-Bench-201-v1_1-096897.pth', verbose=False)
+api = API('./third_party/NAS-Bench-201-v1_1-096897.pth', verbose=False)
+# api = API('/home/xz2723/mase_xinyi/machop/third_party/NAS-Bench-201-v1_1-096897.pth', verbose=False)
 print("api loaded")
 
 class ZeroCostProxy(SearchSpaceBase):
@@ -59,24 +62,33 @@ class ZeroCostProxy(SearchSpaceBase):
     def rebuild_model(self, sampled_config, is_eval_mode: bool = False):
         print("sampled_config")
         print(sampled_config)
+        
         self.model.to(self.accelerator)
         if is_eval_mode:
             self.model.eval()
         else:
-            print("training mode")
             self.model.train()
         # import pdb; pdb.set_trace()
         if "nas_zero_cost" in sampled_config:
             nas_config = generate_configs(sampled_config["nas_zero_cost"])
         else:
             nas_config = generate_configs(sampled_config["default"])
+        # print("nas_config")
+        # print(nas_config)
         
-        print(nas_config)
-
+        arch = nas_config["arch_str"]
+        index = api.query_index_by_arch(arch)
+        print("index")
+        print(index)
+        results = api.query_by_index(index, 'cifar10')
+        print("results")
+        print(results)
+        data = api.get_more_info(index, 'cifar10')
+        
         model_arch = get_cell_based_tiny_net(nas_config)
         model_arch = model_arch.to(self.accelerator)
 
-        return model_arch
+        return model_arch, data
 
     def _build_node_info(self):
         """
@@ -89,6 +101,9 @@ class ZeroCostProxy(SearchSpaceBase):
         """
         choices = {}
         choices["nas_zero_cost"] = self.config["nas_zero_cost"]["config"]
+
+        print("choices: +=================+")
+        print(choices)
 
         for key, value in DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG["config"].items():
             if key in choices["nas_zero_cost"]:

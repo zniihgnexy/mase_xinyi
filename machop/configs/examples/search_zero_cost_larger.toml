@@ -1,6 +1,6 @@
 # basics
 model = "vgg7"
-dataset = "cifar10"
+dataset = "cifar100"
 task = "cls"
 
 max_epochs = 5
@@ -35,7 +35,7 @@ op_2_1 = [0,1,2,3,4]
 op_3_0 = [0,1,2,3,4]
 op_3_1 = [0,1,2,3,4]
 op_3_2 = [0,1,2,3,4]
-number_classes = [10]
+number_classes = [100]
 
 [search.strategy]
 name = "optuna"
@@ -48,7 +48,7 @@ name = "zero_cost"
 # metric can be chosen from 
 # "fisher", "grad_norm", "grasp", "jacob_cov", 
 # "l2_norm", "plain", "snip", "synflow"
-metrics = ["grad_norm", "snip", "grasp", "fisher", "plain", "l2_norm", "naswot", "naswot_relu", "tenas", "zico"]
+metrics = ["grad_norm", "snip", "grasp", "fisher", "jacob_cov", "plain", "synflow", "l2_norm"]
 data_loader = "val_dataloader"
 num_samples = 512
 
@@ -57,7 +57,7 @@ compare_to = 32 # compare to FP32
 
 [search.strategy.setup]
 n_jobs = 1
-n_trials = 250
+n_trials = 2
 timeout = 20000
 sampler = "tpe"
 # sum_scaled_metrics = true # single objective
@@ -73,25 +73,17 @@ grasp.scale = 1.0
 grasp.direction = "maximize"
 fisher.scale = 1.0
 fisher.direction = "maximize"
-# jacob_cov.scale = 1.0
-# jacob_cov.direction = "maximize"
+jacob_cov.scale = 1.0
+jacob_cov.direction = "maximize"
 plain.scale = 1.0
-plain.direction = "maximize"
-# synflow.scale = 1.0
-# synflow.direction = "maximize"
+plain.direction = "minimize"
+synflow.scale = 1.0
+synflow.direction = "minimize"
 l2_norm.scale = 1.0
 l2_norm.direction = "minimize"
-naswot.scale = 1.0
-naswot.direction = "maximize"
-naswot_relu.scale = 1.0
-naswot_relu.direction = "maximize"
-# t_cet.scale = 1.0
-# t_cet.direction = "maximize"
-tenas.scale = 1.0
-tenas.direction = "maximize"
-# zen.scale = 1.0
-# zen.direction = "maximize"
-zico.scale = 1.0
-zico.direction = "maximize"
+# loss.scale = 1.0
+# loss.direction = "minimize"
+# accuracy.scale = 1.0
+# accuracy.direction = "maximize"
 average_bitwidth.scale = 0.2
 average_bitwidth.direction = "minimize"
