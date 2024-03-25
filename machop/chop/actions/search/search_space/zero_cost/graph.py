@@ -28,19 +28,19 @@ from .model_spec import ModelSpec
 ### default architecture is the architecuture returned 
 ### by api.get_net_config(0, 'cifar10') in nasbench201
 DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG = {
-    "config": {'name': ['infer.tiny'], 
-    'C': [16], 
-    'N': [5], 
-    'op_0_0': [0], 
-    'op_1_0': [4], 
-    'op_2_0': [2], 'op_2_1': [1], 
-    'op_3_0': [2], 'op_3_1': [1], 'op_3_2': [1], 
-    'number_classes': [10]}
+    "config": {'dataset': 'cifar10',
+    'name': 'infer.tiny', 
+    'C': 16, 
+    'N': 5, 
+    'op_0_0': 0, 
+    'op_1_0': 4, 
+    'op_2_0': 2, 'op_2_1': 1, 
+    'op_3_0': 2, 'op_3_1': 1, 'op_3_2': 1, 
+    'number_classes': 10}
 }
 
 print("loading api")
 api = API('./third_party/NAS-Bench-201-v1_1-096897.pth', verbose=False)
-# api = API('/home/xz2723/mase_xinyi/machop/third_party/NAS-Bench-201-v1_1-096897.pth', verbose=False)
 print("api loaded")
 
 class ZeroCostProxy(SearchSpaceBase):
@@ -53,14 +53,9 @@ class ZeroCostProxy(SearchSpaceBase):
         self.mg = None
         self._node_info = None
         self.default_config = DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG
-        
-        # quantize the model by type or name
-        # assert (
-        #     "by" in self.config["setup"]
-        # ), "Must specify entry `by` (config['setup']['by] = 'name' or 'type')"
 
     def rebuild_model(self, sampled_config, is_eval_mode: bool = False):
-        print("sampled_config")
+        print("=========sampled_config===============")
         print(sampled_config)
         
         self.model.to(self.accelerator)
@@ -68,22 +63,24 @@ class ZeroCostProxy(SearchSpaceBase):
             self.model.eval()
         else:
             self.model.train()
-        # import pdb; pdb.set_trace()
+       
         if "nas_zero_cost" in sampled_config:
             nas_config = generate_configs(sampled_config["nas_zero_cost"])
+            nasbench_dataset = sampled_config["nas_zero_cost"]["dataset"]
         else:
             nas_config = generate_configs(sampled_config["default"])
-        # print("nas_config")
-        # print(nas_config)
+            nasbench_dataset = sampled_config["default"]["dataset"]
+
+        print(f"Used dataset: {nasbench_dataset}")
         
         arch = nas_config["arch_str"]
         index = api.query_index_by_arch(arch)
         print("index")
         print(index)
-        results = api.query_by_index(index, 'cifar10')
+        results = api.query_by_index(index, nasbench_dataset)
         print("results")
         print(results)
-        data = api.get_more_info(index, 'cifar10')
+        data = api.get_more_info(index, nasbench_dataset)
         
         model_arch = get_cell_based_tiny_net(nas_config)
         model_arch = model_arch.to(self.accelerator)
@@ -97,13 +94,11 @@ class ZeroCostProxy(SearchSpaceBase):
 
     def build_search_space(self):
         """
-        Build the search space for the zero-cose
+        Build the search space for zero-cost
         """
+        
         choices = {}
         choices["nas_zero_cost"] = self.config["nas_zero_cost"]["config"]
-
-        print("choices: +=================+")
-        print(choices)
 
         for key, value in DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG["config"].items():
             if key in choices["nas_zero_cost"]:
@@ -118,6 +113,8 @@ class ZeroCostProxy(SearchSpaceBase):
         self.choice_lengths_flattened = {
             k: len(v) for k, v in self.choices_flattened.items()
         }
+
+        print(self.choice_lengths_flattened)
         
 
     def flattened_indexes_to_config(self, indexes: dict[str, int]):

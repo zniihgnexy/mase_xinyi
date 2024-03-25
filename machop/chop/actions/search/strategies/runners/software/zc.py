@@ -162,6 +162,9 @@ class RunnerZeroCost(SWRunnerBase):
                                                 loss_fn=F.cross_entropy, 
                                                 measure_names=[metric_name],
                                                 measures_arr=None)[metric_name]
+                # print("zero_cost_metrics")
+                # print(zero_cost_metrics)
+                # print(zero_cost_metrics[metric_name])
             else:
                 raise ValueError("Zero cost metrics should be chosen from ['fisher', 'grad_norm', 'grasp', 'l2_norm', 'plain', 'snip', 'synflow', 'naswot', 'naswot_relu', 'tenas', 'zico']!!!")
 

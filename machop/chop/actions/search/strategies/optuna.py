@@ -1,4 +1,5 @@
 import optuna
+from sklearn.impute import SimpleImputer
 import torch
 import numpy as np
 import pandas as pd
@@ -97,11 +98,7 @@ class SearchStrategyOptuna(SearchStrategyBase):
             for name, length in search_space.choice_lengths_flattened.items():
                 sampled_indexes[name] = trial.suggest_int(name, 0, length - 1)
             
-            # print("trial")
-            # print(trial._trial_id)
-            # print(trial.params.items())
             trial_params = trial.params.popitem()
-            # print(trial_params)
             sampled_config = search_space.flattened_indexes_to_config(sampled_indexes)
 
         is_eval_mode = self.config.get("eval_mode", True)
@@ -200,13 +197,24 @@ class SearchStrategyOptuna(SearchStrategyBase):
             available_zc_metrics = ["fisher", "grad_norm", "grasp", "l2_norm", "plain", "snip", "synflow", "naswot", "naswot_relu", "tenas", "zico"]
             zc_cols = self.zc_proxy.columns[self.zc_proxy.columns.isin(available_zc_metrics)]
             self.zc_proxy = self.zc_proxy[zc_cols]
+            
+            # print("proxy values")
+            # print(self.zc_proxy)
 
             ### deal with -inf (fill with the minimum)
             # self.zc_proxy.loc[np.isneginf(self.zc_proxy["jacob_cov"]), "jacob_cov"] = min(self.zc_proxy.loc[~np.isneginf(self.zc_proxy["jacob_cov"]), "jacob_cov"])
 
             ### fit linear regression models
             ## standardize
-            self.zc_proxy = (self.zc_proxy - self.zc_proxy.mean())/self.zc_proxy.std()
+            for _ in self.zc_proxy.columns:
+                if self.zc_proxy[_].mean().sum() != 0:
+                    self.zc_proxy[_] = (self.zc_proxy[_] - self.zc_proxy[_].mean())/self.zc_proxy[_].std()
+                else:
+                    self.zc_proxy[_] = (self.zc_proxy[_] - self.zc_proxy[_].mean())
+                    
+            # print("proxy values after standardization")
+            # print(self.zc_proxy)
+            
             self.zc_weight_model = LinearRegression(fit_intercept=True)
             self.zc_weight_model.fit(self.zc_proxy, self.zc_true_accuracy)
         else:
