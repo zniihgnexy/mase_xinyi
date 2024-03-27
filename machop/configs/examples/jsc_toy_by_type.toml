@@ -1,16 +1,16 @@
 # basics
-model = "jsc-toy"
+model = "jsc-tiny"
 dataset = "jsc"
 task = "cls"
 
 max_epochs = 5
 batch_size = 512
 learning_rate = 1e-2
-accelerator = "cpu"
-project = "jsc-toy"
+accelerator = "gpu"
+project = "jsc-tiny"
 seed = 42
 log_every_n_steps = 5
-load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-toy_classification_jsc_2024-02-10/software/training_ckpts/best.ckpt"
+# load_name = "/home/xinyi/mase_xinyi/mase_output/jsc-tiny_classification_jsc_2024-02-09/software/training_ckpts/best.ckpt"
 load_type = "pl"
 
 [passes.quantize]
@@ -60,6 +60,9 @@ bias_frac_width = ["NA"]
 name = "optuna"
 eval_mode = true
 
+[search.sw_runner]
+name = "zero_cost"
+
 [search.strategy.sw_runner.basic_evaluation]
 data_loader = "val_dataloader"
 num_samples = 512
@@ -71,7 +74,6 @@ compare_to = 32 # compare to FP32
 n_jobs = 1
 n_trials = 20
 timeout = 20000
-# sampler = "brute_force"
 sampler = "tpe"
 # sum_scaled_metrics = true # single objective
 # direction = "maximize"

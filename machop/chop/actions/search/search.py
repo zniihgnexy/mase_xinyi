@@ -5,8 +5,6 @@ import pandas as pd
 import toml
 import torch
 
-from chop.actions import train
-
 from ...tools.checkpoint_load import load_model
 from ...tools.config_load import load_config
 from ...tools.get_input import get_dummy_input
@@ -67,25 +65,6 @@ def search(
     if load_name is not None and load_type in ["pl", "mz", "pt"]:
         model = load_model(load_name=load_name, load_type=load_type, model=model)
         logger.info(f"Loaded model from {load_name}.")
-        
-    # train(
-    #     model=model,
-    #     model_info=model_info,
-    #     data_module=data_module,
-    #     dataset_info=dataset_info,
-    #     task=task,
-    #     optimizer="adam",
-    #     learning_rate=1e-3,
-    #     weight_decay=1e-3,
-    #     plt_trainer_args={
-    #         "max_epochs": 1,
-    #     },
-    #     auto_requeue=False,
-    #     save_path=None,
-    #     visualizer=None,
-    #     load_name=None,
-    #     load_type=None,
-    # )
 
     model.to(accelerator)
     # set up data module

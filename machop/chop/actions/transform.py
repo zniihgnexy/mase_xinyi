@@ -21,7 +21,7 @@ from chop.tools.config_load import load_config
 from chop.tools.get_input import InputGenerator, get_cf_args, get_dummy_input
 from chop.tools.utils import parse_accelerator, to_numpy_if_tensor
 
-from chop.passes.graph.transforms.utils import metadata_value_type_cast_transform_pass
+from chop.passes.graph.transforms import metadata_value_type_cast_transform_pass
 
 logger = logging.getLogger(__name__)
 

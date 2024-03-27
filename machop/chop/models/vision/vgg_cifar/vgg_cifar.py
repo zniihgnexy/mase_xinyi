@@ -29,21 +29,21 @@ class VGG7(nn.Module):
             nn.Conv2d(512, 512, kernel_size=3, padding=1),
             nn.BatchNorm2d(512, momentum=0.9),
             nn.ReLU(inplace=True),
-            nn.MaxPool2d(kernel_size=2), #20
+            nn.MaxPool2d(kernel_size=2),
         )
         self.classifier = nn.Sequential(
-            nn.Linear(8192, 1024),#22
-            nn.ReLU(inplace=True),#23
-            nn.Linear(1024, 1024),#24
-            nn.ReLU(inplace=True),#25
+            nn.Linear(8192, 1024),
+            nn.ReLU(inplace=True),
+            nn.Linear(1024, 1024),
+            nn.ReLU(inplace=True),
         )
 
-        self.last_layer = nn.Linear(1024, num_classes) #26
+        self.last_layer = nn.Linear(1024, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.feature_layers(x) # 20
-        x = x.view(-1, 512 * 4 * 4) # 21
-        x = self.classifier(x) 
+        x = self.feature_layers(x)
+        x = x.view(-1, 512 * 4 * 4)
+        x = self.classifier(x)
         x = self.last_layer(x)
         return x
 
