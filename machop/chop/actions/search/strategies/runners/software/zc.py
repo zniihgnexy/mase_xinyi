@@ -19,6 +19,32 @@ from .base import SWRunnerBase
 import torch.nn.functional as F
 from ....search_space.zero_cost_nas.pruners.predictive import find_measures
 
+'''
+This Python file is dedicated to the implementation of a Runner for Zero Cost Neural Architecture Search (NAS). Zero Cost NAS aims to reduce the computational cost of NAS by using proxy measures to estimate the performance of neural network architectures without the need for full training.
+
+Key Components:
+
+1. **RunnerZeroCost Class**: This is a subclass of `SWRunnerBase`, specifically designed to run the zero-cost NAS process.
+
+2. **_post_init_setup Method**: This initializes the available metrics for zero-cost NAS. The metrics include 'fisher', 'grad_norm', 'grasp', 'l2_norm', 'plain', 'snip', 'synflow', 'naswot', 'naswot_relu', 'tenas', and 'zico'. These are proxy measures that estimate the quality of a neural network architecture without requiring full training.
+
+3. **_setup_metric Method**: This sets up the metric to be used based on the task (classification or language modeling) and the type of model (vision or NLP). Different tasks and model types may require different evaluation metrics.
+
+4. **nlp_cls_forward, nlp_lm_forward, and vision_cls_forward Methods**: These define the forward pass for NLP classification, NLP language modeling, and vision classification tasks respectively. They are responsible for processing the input batch, passing it through the model, computing the loss, updating the metric, and returning the loss.
+
+5. **forward Method**: This performs the forward pass based on the task and the type of model. It delegates the forward pass to the appropriate method based on the task and model type.
+
+6. **compute Method**: This computes the loss and the metric. These values are used to evaluate the performance of the current architecture.
+
+7. **__call__ Method**: This is the main method that runs the zero-cost NAS process. It computes the zero-cost metrics for the given model and data, supporting both training and validation data loaders.
+
+The zero-cost metrics are computed using the `find_measures` function from the `predictive` module in the `zero_cost_nas.pruners` package. This function takes the model, the data loader, information about the data load, the device, the loss function, the names of the measures to compute, and an optional array to store the measures. It returns a dictionary with the computed measures.
+
+For each metric in the configuration, the `__call__` method checks if it is in the list of available metrics. If it is, it computes the metric using the `find_measures` function and stores it in the `zero_cost_metrics` dictionary. If the metric is not in the list of available metrics, it raises a ValueError.
+
+In summary, the `RunnerZeroCost` class enables efficient zero-cost NAS by computing proxy measures that estimate the performance of different neural network architectures without requiring full training.
+'''
+
 
 def get_optimizer(model, optimizer: str, learning_rate, weight_decay=0.0):
     no_decay = ["bias", "LayerNorm.weight"]
@@ -59,7 +85,7 @@ class RunnerZeroCost(SWRunnerBase):
 
     def _post_init_setup(self) -> None:
         self.available_metrics = ["fisher", "grad_norm", "grasp", "l2_norm",
-                         "plain", "snip", "synflow", "naswot", "naswot_relu", "tenas", "zico"]
+                        "plain", "snip", "synflow", "naswot", "naswot_relu", "tenas", "zico"]
         self.loss = MeanMetric().to(self.accelerator)
         self._setup_metric()
 

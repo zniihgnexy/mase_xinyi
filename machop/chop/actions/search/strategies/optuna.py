@@ -103,6 +103,23 @@ class SearchStrategyOptuna(SearchStrategyBase):
 
         is_eval_mode = self.config.get("eval_mode", True)
         
+        '''
+        group 2: zero cost
+
+        In this section, we've added functionality to handle the zero cost mode. 
+
+        - First, we check if the zero cost mode is enabled.
+        - If it is, we rebuild the model with the sampled configuration and evaluation mode, and store the data returned by the rebuild_model function.
+        - We then create a new entry in the zero_cost_and_true_metric dictionary with the true metric data and an empty dictionary for the zero cost proxy.
+        - If the zero cost mode is not enabled, we simply rebuild the model without storing the data.
+        - We then compute the software and hardware metrics, and combine them into a single dictionary.
+        - We scale the metrics according to the scale factors defined in the configuration.
+        - If the zero cost mode is enabled, we store the scaled metrics in the zero_cost_proxy dictionary.
+        - We then set several user attributes for the trial, including the software metrics, hardware metrics, scaled metrics, sampled configuration, and nasbench data metrics.
+        - We log the scaled metrics using the visualizer.
+        - Finally, we return the scaled metrics. If the sum_scaled_metrics flag is enabled, we return the sum of the scaled metrics; otherwise, we return the list of scaled metrics.
+        '''
+        
         # print("self config")
         # print(self.config)
         if self.zero_cost_mode:

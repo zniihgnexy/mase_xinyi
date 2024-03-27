@@ -56,7 +56,7 @@ compare_to = 32 # compare to FP32
 
 [search.strategy.setup]
 n_jobs = 1
-n_trials = 5
+n_trials = 100
 timeout = 20000
 sampler = "tpe"
 # sum_scaled_metrics = true # single objective
@@ -64,13 +64,13 @@ sampler = "tpe"
 sum_scaled_metrics = false # multi objective
 
 [search.strategy.metrics]
-grad_norm.scale = 1.0
+grad_norm.scale = 0.0
 grad_norm.direction = "maximize"
 snip.scale = 1.0 # number 1
 snip.direction = "maximize"
-grasp.scale = 1.0
+grasp.scale = 0.0
 grasp.direction = "maximize"
-fisher.scale = 1.0
+fisher.scale = 0.0
 fisher.direction = "maximize"
 # jacob_cov.scale = 1.0
 # jacob_cov.direction = "maximize"
@@ -78,7 +78,7 @@ plain.scale = 1.0 # number 2
 plain.direction = "maximize"
 # synflow.scale = 1.0
 # synflow.direction = "maximize"
-l2_norm.scale = 1.0
+l2_norm.scale = 0.0
 l2_norm.direction = "minimize"
 naswot.scale = 1.0
 naswot.direction = "maximize"
@@ -90,7 +90,7 @@ naswot_relu.direction = "maximize"
 # tenas.direction = "maximize"
 # zen.scale = 1.0
 # zen.direction = "maximize"
-zico.scale = 1.0
+zico.scale = 0.0
 zico.direction = "maximize"
 # average_bitwidth.scale = 0.2
 # average_bitwidth.direction = "minimize"

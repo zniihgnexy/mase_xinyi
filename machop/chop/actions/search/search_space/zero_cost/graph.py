@@ -25,6 +25,27 @@ from .model_spec import ModelSpec
 
 # from nas_graph import load_bench_arch
 
+'''
+Group 2 NAS-Proxy
+This file defines the search space for mixed-precision post-training-quantization quantization search on mase graph.
+
+Imports:
+- Various utility functions and classes are imported from different modules.
+
+Constants:
+- DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG: This is the default architecture configuration for the zero-cost NAS.
+
+Classes:
+- ZeroCostProxy: This class defines the search space for post-training quantization on mase graph.
+
+Functions:
+- instantiate_linear: This function creates an instance of a linear layer with the given parameters.
+- instantiate_relu: This function creates an instance of a ReLU activation function with the given parameters.
+- instantiate_batchnorm: This function creates an instance of a batch normalization layer with the given parameters.
+- instantiate_conv2d: This function creates an instance of a 2D convolutional layer with the given parameters.
+- generate_configs: This function generates the configuration for the NAS based on the given dictionary.
+'''
+
 ### default architecture is the architecuture returned 
 ### by api.get_net_config(0, 'cifar10') in nasbench201
 DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG = {
@@ -45,7 +66,9 @@ print("api loaded")
 
 class ZeroCostProxy(SearchSpaceBase):
     """
+    Group 2 NAS-Proxy
     Post-Training quantization search space for mase graph.
+    This class uses the NAS-Bench-201 API to query the architecture performance and uses the returned architecture for further operations.
     """
 
     def _post_init_setup(self):
@@ -55,7 +78,12 @@ class ZeroCostProxy(SearchSpaceBase):
         self.default_config = DEFAULT_ZERO_COST_ARCHITECTURE_CONFIG
 
     def rebuild_model(self, sampled_config, is_eval_mode: bool = False):
-        print("=========sampled_config===============")
+        '''
+        Group 2 NAS-Proxy
+        This method rebuilds the model based on the sampled configuration. It also sets the model to evaluation or training mode based on the is_eval_mode parameter.
+        It queries the NAS-Bench-201 API for the architecture performance and uses the returned architecture to rebuild the model.
+        '''
+        print("\n=========sampled_config===============")
         print(sampled_config)
         
         self.model.to(self.accelerator)
@@ -168,7 +196,11 @@ def instantiate_conv2d(in_channels, out_channels, kernel_size, stride, padding, 
 import itertools
 
 def generate_configs(config_dict):
-
+    '''
+    Group 2 NAS-Proxy
+    This function generates the configuration for the NAS based on the given dictionary.
+    This is used to generate the configuration that is used to query the NAS-Bench-201 API for the architecture performance.
+    '''
     name = config_dict['name']
     C = config_dict['C']
     N = config_dict['N']

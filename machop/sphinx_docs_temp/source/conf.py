@@ -12,14 +12,15 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../'))
+sys.path.insert(0, os.path.abspath('../../../chop/actions/search/search_space'))
+
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'Zero cost search'
-copyright = '2024, Xinyi Zheng & Haoyang Hong'
-author = 'Xinyi Zheng & Haoyang Hong'
+project = 'zero_cost_proxy'
+copyright = '2024, Hong Haoyang, Zheng Xinyi'
+author = 'Hong Haoyang, Zheng Xinyi'
 
 
 # -- General configuration ---------------------------------------------------
@@ -29,7 +30,7 @@ author = 'Xinyi Zheng & Haoyang Hong'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'recommonmark'
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -46,7 +47,7 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'alabaster'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
